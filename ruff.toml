@@ -1,0 +1,54 @@
+target-version = "py312"
+line-length = 100
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "SIM", # flake8-simplify
+    "TID", # flake8-tidy-imports
+    "ANN", # flake8-annotations
+    "S",   # bandit (security)
+    "RUF", # ruff-specific
+]
+ignore = [
+    "E501",   # line length — handled by formatter
+    "S101",   # use of assert — valid in tests
+    "ANN101", # missing self annotation
+    "ANN102", # missing cls annotation
+    "ANN401", # any type annotations allowed where intentional
+]
+
+[lint.per-file-ignores]
+"tests/**" = ["ANN", "S"]
+"alembic/**" = ["ANN"]
+"**/migrations/**" = ["ANN"]
+
+[lint.isort]
+known-first-party = [
+    "domain",
+    "audit",
+    "utils",
+    "testing",
+    "engines",
+    "reasoning",
+    "data",
+    "reports",
+    "workflow",
+    "observability",
+    "app",
+    "workers",
+]
+split-on-trailing-comma = true
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"

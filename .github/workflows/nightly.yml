@@ -1,0 +1,170 @@
+name: Nightly
+
+on:
+  schedule:
+    # 02:00 UTC daily (offset from peak CI traffic)
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Determinism — same snapshot in, same outputs out, every night
+  # -------------------------------------------------------------------------
+  determinism:
+    name: Determinism Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bsm_test
+          POSTGRES_USER: bsm
+          POSTGRES_PASSWORD: bsm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install workspace
+        run: uv sync --frozen
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql+asyncpg://bsm:bsm@localhost:5432/bsm_test
+        run: |
+          cd apps/api
+          uv run alembic upgrade head
+
+      - name: Run determinism tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://bsm:bsm@localhost:5432/bsm_test
+        run: uv run pytest tests/determinism/ -v --tb=short
+
+  # -------------------------------------------------------------------------
+  # Property tests — 1000+ cases per engine
+  # -------------------------------------------------------------------------
+  property-tests:
+    name: Property Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install workspace
+        run: uv sync --frozen
+
+      - name: Run property tests
+        run: |
+          uv run pytest tests/property/ -v --tb=short \
+            --hypothesis-seed=0 \
+            -x  # stop on first failure
+
+  # -------------------------------------------------------------------------
+  # Reasoning eval — run against golden eval sets (requires Anthropic API key)
+  # -------------------------------------------------------------------------
+  reasoning-eval:
+    name: Reasoning Eval
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: vars.ENABLE_NIGHTLY_REASONING_EVAL == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install workspace
+        run: uv sync --frozen
+
+      - name: Run reasoning eval harness
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: uv run pytest tests/eval_harness/ -v --tb=short
+
+  # -------------------------------------------------------------------------
+  # End-to-end — full reporting cycle against a live environment
+  # -------------------------------------------------------------------------
+  e2e:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bsm_e2e
+          POSTGRES_USER: bsm
+          POSTGRES_PASSWORD: bsm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install workspace
+        run: uv sync --frozen
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql+asyncpg://bsm:bsm@localhost:5432/bsm_e2e
+        run: |
+          cd apps/api
+          uv run alembic upgrade head
+
+      - name: Run e2e tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://bsm:bsm@localhost:5432/bsm_e2e
+          APP_MODE: local
+        run: uv run pytest tests/e2e/ -v --tb=short
+
+  # -------------------------------------------------------------------------
+  # Notify on failure
+  # -------------------------------------------------------------------------
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [determinism, property-tests, e2e]
+    if: failure()
+    steps:
+      - name: Create failure issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const date = new Date().toISOString().split('T')[0];
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Nightly CI failure — ${date}`,
+              body: `Nightly CI pipeline failed. See: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              labels: ['ci-failure', 'priority-high'],
+            });

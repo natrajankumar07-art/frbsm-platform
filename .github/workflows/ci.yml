@@ -1,0 +1,255 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+  UV_CACHE_DIR: /tmp/.uv-cache
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Python lint & format check
+  # -------------------------------------------------------------------------
+  lint-python:
+    name: Lint (Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Check ruff
+        run: uv run ruff check .
+
+      - name: Check ruff format
+        run: uv run ruff format --check .
+
+  # -------------------------------------------------------------------------
+  # Import boundary enforcement
+  # -------------------------------------------------------------------------
+  import-boundaries:
+    name: Import Boundaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install workspace
+        run: uv sync --frozen
+
+      - name: Check import boundaries
+        run: uv run lint-imports
+
+  # -------------------------------------------------------------------------
+  # Type checking
+  # -------------------------------------------------------------------------
+  typecheck:
+    name: Type Check (mypy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install workspace
+        run: uv sync --frozen
+
+      - name: Run mypy on shared packages
+        run: uv run mypy shared/
+
+      - name: Run mypy on app
+        run: uv run mypy apps/api/app/
+
+  # -------------------------------------------------------------------------
+  # Unit tests
+  # -------------------------------------------------------------------------
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install workspace
+        run: uv sync --frozen
+
+      - name: Run unit tests
+        run: uv run pytest tests/unit/ -v --tb=short
+
+  # -------------------------------------------------------------------------
+  # Golden tests (run when engine code changes)
+  # -------------------------------------------------------------------------
+  golden-tests:
+    name: Golden Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: |
+      github.event_name == 'push' ||
+      contains(github.event.pull_request.changed_files, 'engines/')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install workspace
+        run: uv sync --frozen
+
+      - name: Run golden tests
+        run: uv run pytest tests/golden/ -v --tb=short
+
+  # -------------------------------------------------------------------------
+  # Integration tests (require PostgreSQL)
+  # -------------------------------------------------------------------------
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bsm_test
+          POSTGRES_USER: bsm
+          POSTGRES_PASSWORD: bsm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install workspace
+        run: uv sync --frozen
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql+asyncpg://bsm:bsm@localhost:5432/bsm_test
+        run: |
+          cd apps/api
+          uv run alembic upgrade head
+
+      - name: Run integration tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://bsm:bsm@localhost:5432/bsm_test
+        run: uv run pytest tests/integration/ -v --tb=short
+
+  # -------------------------------------------------------------------------
+  # Frontend lint, typecheck, and build
+  # -------------------------------------------------------------------------
+  frontend:
+    name: Frontend (lint + typecheck + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          # pnpm workspace lockfile lives at repo root, not in apps/web
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        # Install from workspace root so pnpm-workspace.yaml is respected
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        working-directory: apps/web
+        run: pnpm lint
+
+      - name: Type check
+        working-directory: apps/web
+        run: pnpm typecheck
+
+      - name: Build
+        working-directory: apps/web
+        run: pnpm build
+
+  # -------------------------------------------------------------------------
+  # Security scanning
+  # -------------------------------------------------------------------------
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect secrets (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install workspace
+        run: uv sync --frozen
+
+      - name: Audit Python dependencies
+        run: uv run pip-audit --requirement <(uv export --no-hashes) --ignore-vuln PYSEC-2022-42969
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit Node dependencies
+        working-directory: apps/web
+        run: pnpm audit --audit-level=high

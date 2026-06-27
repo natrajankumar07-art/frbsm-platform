@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bsm-platform/reasoning/prompt-template-schema",
+  "title": "PromptTemplate",
+  "description": "Schema for all prompt templates in reasoning/prompts/. Every template file must validate against this schema.",
+  "type": "object",
+  "required": ["id", "version", "module", "system", "user_template", "output_schema"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for this prompt template. Used to look up the template at runtime.",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of this template. Changing this triggers a full golden test re-run.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "module": {
+      "type": "string",
+      "description": "The ReasoningModuleType enum value this template belongs to.",
+      "enum": [
+        "CREDIT_ANALYSIS",
+        "CAPITAL_SUMMARY",
+        "LIQUIDITY_SUMMARY",
+        "IRRBB_SUMMARY",
+        "IFRS9_SUMMARY",
+        "CONCENTRATION_ANALYSIS",
+        "DISCLOSURES",
+        "WHAT_IF"
+      ]
+    },
+    "model_hint": {
+      "type": "string",
+      "description": "Preferred Claude model ID. Defaults to the ANTHROPIC_MODEL env var if omitted. Changing requires full eval suite re-run.",
+      "default": "claude-sonnet-4-6"
+    },
+    "max_tokens": {
+      "type": "integer",
+      "description": "Maximum tokens to request from Claude. Must not exceed 4096 for non-extended-output models.",
+      "minimum": 100,
+      "maximum": 8192,
+      "default": 2048
+    },
+    "temperature": {
+      "type": "number",
+      "description": "Sampling temperature. Must be 0 for deterministic reasoning modules. Non-zero only for exploratory what-if analysis.",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": 0.0
+    },
+    "system": {
+      "type": "string",
+      "description": "System prompt. Must NOT contain any compute logic or numerical derivations — those belong in the engine layer.",
+      "minLength": 10
+    },
+    "user_template": {
+      "type": "string",
+      "description": "Jinja2 template for the user turn. Variables are compute outputs passed from the engine layer.",
+      "minLength": 10
+    },
+    "output_schema": {
+      "type": "object",
+      "description": "JSON Schema describing the expected structured output from Claude. Used to validate ReasoningOutput.",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string" }
+      }
+    },
+    "review_required": {
+      "type": "boolean",
+      "description": "If true, the ReasoningOutput.review_required flag is always set. Required=true for DISCLOSURES module.",
+      "default": false
+    }
+  }
+}

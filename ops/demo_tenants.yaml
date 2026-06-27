@@ -1,0 +1,45 @@
+# Demo tenant definitions — loaded at startup when APP_MODE=demo.
+# All values here are fictional and for demonstration purposes only.
+# Sensitive fields (passwords, keys) are read from environment variables.
+
+tenants:
+  - id: "demo-bank-in"
+    name: "Demo Bank India"
+    jurisdiction: IN
+    functional_currency: INR
+    reporting_date: "2024-03-31"        # FY end for Indian banks
+    users:
+      - email: "preparer@demo.invalid"
+        role: PREPARER
+        display_name: "Alex Preparer"
+      - email: "reviewer@demo.invalid"
+        role: REVIEWER
+        display_name: "Morgan Reviewer"
+      - email: "approver@demo.invalid"
+        role: APPROVER
+        display_name: "Jordan Approver"
+      - email: "viewer@demo.invalid"
+        role: VIEWER
+        display_name: "Sam Viewer"
+    seed_data:
+      positions_file: "data/demo/positions_in.parquet"
+      reference_data_file: "data/demo/reference_data_in.json"
+
+  - id: "demo-bank-us"
+    name: "Demo Bank USA"
+    jurisdiction: US
+    functional_currency: USD
+    reporting_date: "2024-12-31"        # Calendar year end for US banks
+    users:
+      - email: "preparer-us@demo.invalid"
+        role: PREPARER
+        display_name: "Alex Preparer (US)"
+      - email: "reviewer-us@demo.invalid"
+        role: REVIEWER
+        display_name: "Morgan Reviewer (US)"
+      - email: "approver-us@demo.invalid"
+        role: APPROVER
+        display_name: "Jordan Approver (US)"
+    seed_data:
+      positions_file: "data/demo/positions_us.parquet"
+      reference_data_file: "data/demo/reference_data_us.json"

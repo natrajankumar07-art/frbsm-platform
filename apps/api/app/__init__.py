@@ -1,0 +1,1 @@
+"""BSM Platform FastAPI application."""
