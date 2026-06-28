@@ -33,7 +33,7 @@ async def list_counterparties(
     is_financial_institution: bool | None,
 ) -> PagedResponse[CounterpartyResponse]:
     if sort_by not in _ALLOWED_SORT_BY:
-        sort_by = "created_at"
+        raise HTTPException(status_code=400, detail=f"Invalid sort_by '{sort_by}'. Allowed: {sorted(_ALLOWED_SORT_BY)}")
     items, total = await counterparty_repo.list(
         db,
         page=page,

@@ -27,7 +27,7 @@ async def list_snapshots(
     frozen_by: str | None,
 ) -> PagedResponse[SnapshotResponse]:
     if sort_by not in _ALLOWED_SORT_BY:
-        sort_by = "reporting_date"
+        raise HTTPException(status_code=400, detail=f"Invalid sort_by '{sort_by}'. Allowed: {sorted(_ALLOWED_SORT_BY)}")
     items, total = await snapshot_repo.list(
         db,
         page=page,

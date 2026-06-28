@@ -38,7 +38,7 @@ async def list_product_groups(
     parent_group_id: uuid.UUID | None,
 ) -> PagedResponse[ProductGroupResponse]:
     if sort_by not in _GROUP_SORT:
-        sort_by = "created_at"
+        raise HTTPException(status_code=400, detail=f"Invalid sort_by '{sort_by}'. Allowed: {sorted(_GROUP_SORT)}")
     items, total = await product_group_repo.list(
         db,
         page=page,
@@ -111,7 +111,7 @@ async def list_products(
     lcr_eligible: bool | None,
 ) -> PagedResponse[ProductResponse]:
     if sort_by not in _PRODUCT_SORT:
-        sort_by = "created_at"
+        raise HTTPException(status_code=400, detail=f"Invalid sort_by '{sort_by}'. Allowed: {sorted(_PRODUCT_SORT)}")
     items, total = await product_repo.list(
         db,
         page=page,

@@ -18,6 +18,7 @@ class SnapshotCreate(BaseModel):
 
 
 class SnapshotUpdate(BaseModel):
+    status: str | None = None
     notes: str | None = None
     position_count: int | None = Field(None, ge=0)
 

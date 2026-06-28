@@ -39,7 +39,7 @@ async def list_positions(
     ifrs9_stage: str | None,
 ) -> PagedResponse[PositionResponse]:
     if sort_by not in _ALLOWED_SORT_BY:
-        sort_by = "created_at"
+        raise HTTPException(status_code=400, detail=f"Invalid sort_by '{sort_by}'. Allowed: {sorted(_ALLOWED_SORT_BY)}")
     items, total = await position_repo.list(
         db,
         page=page,

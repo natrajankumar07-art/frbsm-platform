@@ -35,7 +35,7 @@ async def list_scenarios(
     is_active: bool | None,
 ) -> PagedResponse[ScenarioResponse]:
     if sort_by not in _ALLOWED_SORT_BY:
-        sort_by = "created_at"
+        raise HTTPException(status_code=400, detail=f"Invalid sort_by '{sort_by}'. Allowed: {sorted(_ALLOWED_SORT_BY)}")
     items, total = await scenario_repo.list(
         db,
         page=page,

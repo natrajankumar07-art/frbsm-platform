@@ -32,7 +32,7 @@ async def list_cashflows(
     is_contractual: bool | None,
 ) -> PagedResponse[CashflowResponse]:
     if sort_by not in _ALLOWED_SORT_BY:
-        sort_by = "cashflow_date"
+        raise HTTPException(status_code=400, detail=f"Invalid sort_by '{sort_by}'. Allowed: {sorted(_ALLOWED_SORT_BY)}")
     items, total = await cashflow_repo.list(
         db,
         page=page,
