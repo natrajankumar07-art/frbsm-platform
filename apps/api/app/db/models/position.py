@@ -5,9 +5,8 @@ from datetime import date
 from decimal import Decimal
 
 from sqlalchemy import (
-    Boolean,
     Date,
-    ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     Numeric,
@@ -16,17 +15,33 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from ..base import Base, TimestampMixin
 
 MONEY = Numeric(precision=28, scale=8)
 
 
-class PositionModel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class PositionModel(TimestampMixin, Base):
+    """
+    ORM model for the range-partitioned `positions` table.
+
+    The partition key (reporting_date) is part of the composite PRIMARY KEY
+    (id, reporting_date) as required by PostgreSQL partitioned tables.
+    UUIDPrimaryKeyMixin is intentionally NOT used here — it declares only `id`
+    as PK, which would misrepresent the composite key to SQLAlchemy's identity map.
+    """
+
     __tablename__ = "positions"
+
+    # Composite PK required by PostgreSQL range partitioning
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    reporting_date: Mapped[date] = mapped_column(Date, nullable=False, primary_key=True)
 
     counterparty_id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True),
-        ForeignKey("counterparties.id", ondelete="RESTRICT"),
         nullable=False,
     )
     product_code: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -46,20 +61,32 @@ class PositionModel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     deposit_type: Mapped[str | None] = mapped_column(String(60), nullable=True)
     customer_segment: Mapped[str | None] = mapped_column(String(30), nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
-    reporting_date: Mapped[date] = mapped_column(Date, nullable=False)
 
     counterparty: Mapped["CounterpartyModel"] = relationship(  # type: ignore[name-defined]
         "CounterpartyModel",
         back_populates="positions",
+        foreign_keys=[counterparty_id],
         lazy="joined",
     )
     collateral: Mapped[list["CollateralModel"]] = relationship(
         "CollateralModel",
         back_populates="position",
+        primaryjoin=(
+            "and_(PositionModel.id == CollateralModel.position_id, "
+            "PositionModel.reporting_date == CollateralModel.position_reporting_date)"
+        ),
+        foreign_keys="[CollateralModel.position_id, CollateralModel.position_reporting_date]",
         lazy="selectin",
     )
 
     __table_args__ = (
+        # Enforce counterparty FK at DB level (declared here to support partitioned table)
+        ForeignKeyConstraint(
+            ["counterparty_id"],
+            ["counterparties.id"],
+            ondelete="RESTRICT",
+            name="fk_positions_counterparty",
+        ),
         Index("ix_positions_counterparty_id", "counterparty_id"),
         Index("ix_positions_reporting_date", "reporting_date"),
         Index("ix_positions_ifrs9_stage", "ifrs9_stage"),
@@ -68,15 +95,23 @@ class PositionModel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
 
-class CollateralModel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class CollateralModel(TimestampMixin, Base):
+    """
+    ORM model for the `collateral` table.
+
+    Uses a composite FK (position_id, position_reporting_date) to reference
+    the partitioned positions table — PostgreSQL requires the partition key
+    in any FK targeting a partitioned table.
+    """
+
     __tablename__ = "collateral"
 
-    position_id: Mapped[uuid.UUID] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True),
-        nullable=False,
+        primary_key=True,
+        default=uuid.uuid4,
     )
-    # Carries the partition key from positions to form the composite FK
-    # (position_id, position_reporting_date) → positions(id, reporting_date)
+    position_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False)
     position_reporting_date: Mapped[date] = mapped_column(Date, nullable=False)
     collateral_type: Mapped[str] = mapped_column(String(40), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=False, default="")
@@ -88,6 +123,15 @@ class CollateralModel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     position: Mapped["PositionModel"] = relationship(
         "PositionModel",
         back_populates="collateral",
+        foreign_keys=[position_id, position_reporting_date],
     )
 
-    __table_args__ = (Index("ix_collateral_position_id", "position_id"),)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["position_id", "position_reporting_date"],
+            ["positions.id", "positions.reporting_date"],
+            ondelete="CASCADE",
+            name="collateral_position_fkey",
+        ),
+        Index("ix_collateral_position_id", "position_id"),
+    )

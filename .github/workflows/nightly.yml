@@ -40,7 +40,7 @@ jobs:
           enable-cache: true
 
       - name: Install workspace
-        run: uv sync --frozen
+        run: uv sync --frozen --all-packages
 
       - name: Run migrations
         env:
@@ -70,7 +70,7 @@ jobs:
           enable-cache: true
 
       - name: Install workspace
-        run: uv sync --frozen
+        run: uv sync --frozen --all-packages
 
       - name: Run property tests
         run: |
@@ -95,7 +95,7 @@ jobs:
           enable-cache: true
 
       - name: Install workspace
-        run: uv sync --frozen
+        run: uv sync --frozen --all-packages
 
       - name: Run reasoning eval harness
         env:
@@ -132,7 +132,7 @@ jobs:
           enable-cache: true
 
       - name: Install workspace
-        run: uv sync --frozen
+        run: uv sync --frozen --all-packages
 
       - name: Run migrations
         env:

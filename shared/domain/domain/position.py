@@ -25,12 +25,17 @@ class Collateral(BaseModel):
 
     `net_value` = market_value × (1 − haircut). Engines use net_value
     for CRM benefit calculations; do not recompute haircuts inside engines.
+
+    `position_reporting_date` mirrors the partition key on the positions table;
+    required to form the composite FK (position_id, position_reporting_date)
+    → positions(id, reporting_date) in PostgreSQL range-partitioned schema.
     """
 
     model_config = {"frozen": True}
 
     id: UUID
     position_id: UUID
+    position_reporting_date: date
     collateral_type: CollateralType
     description: str = Field(..., max_length=500)
     market_value: Decimal = Field(..., ge=Decimal("0"))

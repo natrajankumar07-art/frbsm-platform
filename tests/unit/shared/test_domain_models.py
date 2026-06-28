@@ -1,9 +1,9 @@
 """Round-trip serialization and field constraint tests for domain models."""
 from __future__ import annotations
 
-import json
+import uuid
+from datetime import date, datetime, timezone
 from decimal import Decimal
-from datetime import date
 
 import pytest
 from pydantic import ValidationError
@@ -11,6 +11,22 @@ from pydantic import ValidationError
 from domain.position import Position
 from domain.enums import IFRS9Stage, SnapshotStatus
 from domain.snapshot import Snapshot
+
+
+def _make_snapshot(**overrides: object) -> Snapshot:
+    """Construct a minimal valid Snapshot, merging any field overrides."""
+    defaults: dict = {
+        "id": uuid.uuid4(),
+        "reporting_date": date(2024, 3, 31),
+        "frozen_at": datetime(2024, 3, 31, 18, 0, 0, tzinfo=timezone.utc),
+        "frozen_by": "user-001",
+        "position_hash": "a" * 64,
+        "reference_hash": "b" * 64,
+        "position_count": 0,
+        "status": SnapshotStatus.DRAFT,
+    }
+    defaults.update(overrides)
+    return Snapshot(**defaults)
 
 
 class TestPositionRoundTrip:
@@ -30,63 +46,51 @@ class TestPositionRoundTrip:
 
     def test_maturity_must_be_after_reporting_date(self, minimal_position: Position) -> None:
         data = minimal_position.model_dump()
-        # maturity_date earlier than reporting_date should fail
+        # maturity_date earlier than reporting_date should fail for active positions
         data["maturity_date"] = date(2024, 1, 1)  # before reporting_date 2024-03-31
         with pytest.raises(ValidationError):
             Position.model_validate(data)
 
-    def test_notional_must_be_positive(self, minimal_position: Position) -> None:
+    def test_notional_must_be_non_negative(self, minimal_position: Position) -> None:
         data = minimal_position.model_dump()
         data["notional"] = Decimal("-1.00")
         with pytest.raises(ValidationError):
             Position.model_validate(data)
 
-    def test_pd_must_be_between_zero_and_one(self, minimal_position: Position) -> None:
+    def test_days_past_due_non_negative(self, minimal_position: Position) -> None:
         data = minimal_position.model_dump()
-        data["pd_one_year"] = Decimal("1.5")
-        with pytest.raises(ValidationError):
-            Position.model_validate(data)
-
-    def test_lgd_must_be_between_zero_and_one(self, minimal_position: Position) -> None:
-        data = minimal_position.model_dump()
-        data["lgd"] = Decimal("-0.01")
+        data["days_past_due"] = -1
         with pytest.raises(ValidationError):
             Position.model_validate(data)
 
 
 class TestSnapshotStatus:
     def test_draft_is_not_immutable(self) -> None:
-        snap = Snapshot(
-            snapshot_id="SNAP-001",
-            tenant_id="TENANT-001",
-            reporting_date=date(2024, 3, 31),
-            status=SnapshotStatus.DRAFT,
-            position_count=0,
-            position_hash="a" * 64,
-            reference_hash="b" * 64,
-        )
+        snap = _make_snapshot(status=SnapshotStatus.DRAFT)
         assert not snap.is_immutable
 
     def test_locked_is_immutable(self) -> None:
-        snap = Snapshot(
-            snapshot_id="SNAP-001",
-            tenant_id="TENANT-001",
-            reporting_date=date(2024, 3, 31),
-            status=SnapshotStatus.LOCKED,
-            position_count=0,
-            position_hash="a" * 64,
-            reference_hash="b" * 64,
-        )
+        snap = _make_snapshot(status=SnapshotStatus.LOCKED)
         assert snap.is_immutable
+
+    def test_filed_is_immutable(self) -> None:
+        snap = _make_snapshot(status=SnapshotStatus.FILED)
+        assert snap.is_immutable
+
+    def test_snapshot_is_frozen(self) -> None:
+        snap = _make_snapshot()
+        with pytest.raises((TypeError, ValidationError)):
+            snap.status = SnapshotStatus.FILED  # type: ignore[misc]
 
     def test_position_hash_must_be_64_hex_chars(self) -> None:
         with pytest.raises(ValidationError):
-            Snapshot(
-                snapshot_id="SNAP-001",
-                tenant_id="TENANT-001",
-                reporting_date=date(2024, 3, 31),
-                status=SnapshotStatus.DRAFT,
-                position_count=0,
-                position_hash="not-a-sha256",
-                reference_hash="b" * 64,
-            )
+            _make_snapshot(position_hash="not-a-sha256")
+
+    def test_reference_hash_must_be_64_hex_chars(self) -> None:
+        with pytest.raises(ValidationError):
+            _make_snapshot(reference_hash="zz" * 32)  # non-hex chars
+
+    def test_json_round_trip(self) -> None:
+        snap = _make_snapshot()
+        reconstructed = Snapshot.model_validate_json(snap.model_dump_json())
+        assert reconstructed == snap

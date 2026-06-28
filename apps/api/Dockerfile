@@ -10,7 +10,7 @@ WORKDIR /workspace
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Copy workspace configuration first (layer cache optimisation)
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./
 COPY shared/ shared/
 COPY apps/api/pyproject.toml apps/api/
 
@@ -19,7 +19,7 @@ COPY apps/api/pyproject.toml apps/api/
 # ---------------------------------------------------------------------------
 FROM base AS builder
 
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-dev --no-install-project --all-packages
 
 # ---------------------------------------------------------------------------
 # Development: full workspace with hot-reload
@@ -28,7 +28,7 @@ FROM base AS development
 
 # Install with dev dependencies for running tests in container
 COPY . .
-RUN uv sync --frozen
+RUN uv sync --frozen --all-packages
 
 EXPOSE 8000
 CMD ["uv", "run", "uvicorn", "app.main:app", \

@@ -1,6 +1,6 @@
 """Snapshot domain model — point-in-time frozen view of positions and reference data."""
 
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -27,7 +27,7 @@ class Snapshot(BaseModel):
     model_config = {"frozen": True}
 
     id: UUID
-    reporting_date_iso: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    reporting_date: date
     frozen_at: datetime
     frozen_by: str = Field(..., min_length=1)  # user_id
     position_hash: str = Field(..., pattern=r"^[a-f0-9]{64}$")  # SHA-256 hex

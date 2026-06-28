@@ -21,7 +21,18 @@ members = [
 ]
 
 [tool.uv]
-dev-dependencies = [
+# Workspace package sources — tells uv to resolve these from within the monorepo
+# rather than PyPI. Every internal package listed as a dependency in any workspace
+# member must have a corresponding entry here.
+
+[tool.uv.sources]
+platform-domain = { workspace = true }
+platform-audit = { workspace = true }
+platform-utils = { workspace = true }
+platform-testing = { workspace = true }
+
+[dependency-groups]
+dev = [
     "pytest>=8.2",
     "pytest-asyncio>=0.23",
     "pytest-postgresql>=6.1",
