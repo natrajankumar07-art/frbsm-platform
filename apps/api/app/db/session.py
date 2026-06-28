@@ -8,11 +8,16 @@ from sqlalchemy.ext.asyncio import (
 
 from ..config import settings
 
+# echo=False even in debug mode — SQL logging via structlog is handled by
+# the OTel SQLAlchemy instrumentor; SQLAlchemy's own echo is too noisy.
+# Set SQL_ECHO=true in .env only when you need raw statement tracing.
+import os as _os
+
 engine = create_async_engine(
     settings.database_url,
     pool_size=settings.database_pool_size,
     max_overflow=settings.database_max_overflow,
-    echo=settings.debug,
+    echo=_os.getenv("SQL_ECHO", "false").lower() == "true",
     future=True,
 )
 
