@@ -29,10 +29,10 @@ class StressTestRunModel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ForeignKey("scenarios.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    compute_run_id: Mapped[uuid.UUID] = mapped_column(
+    compute_run_id: Mapped[uuid.UUID | None] = mapped_column(
         PG_UUID(as_uuid=True),
         ForeignKey("compute_runs.id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
     )
     run_type: Mapped[str] = mapped_column(String(30), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")

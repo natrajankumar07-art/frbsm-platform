@@ -28,6 +28,17 @@ from .errors import (
 from .logging import configure_logging
 from .middleware import RequestIDMiddleware
 from .routers import health as health_router
+from .routers import (
+    cashflows as cashflows_router,
+    counterparties as counterparties_router,
+    legal_entities as legal_entities_router,
+    positions as positions_router,
+    product_groups as product_groups_router,
+    products as products_router,
+    scenarios as scenarios_router,
+    snapshots as snapshots_router,
+    stress_tests as stress_tests_router,
+)
 from .telemetry import instrument_fastapi, instrument_sqlalchemy, setup_telemetry
 
 # ---------------------------------------------------------------------------
@@ -116,3 +127,12 @@ app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignor
 # Routers
 # ---------------------------------------------------------------------------
 app.include_router(health_router.router)
+app.include_router(legal_entities_router.router)
+app.include_router(product_groups_router.router)
+app.include_router(products_router.router)
+app.include_router(counterparties_router.router)
+app.include_router(positions_router.router)
+app.include_router(cashflows_router.router)
+app.include_router(snapshots_router.router)
+app.include_router(scenarios_router.router)
+app.include_router(stress_tests_router.router)
