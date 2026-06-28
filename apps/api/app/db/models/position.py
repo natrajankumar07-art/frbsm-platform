@@ -73,9 +73,11 @@ class CollateralModel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     position_id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True),
-        ForeignKey("positions.id", ondelete="CASCADE"),
         nullable=False,
     )
+    # Carries the partition key from positions to form the composite FK
+    # (position_id, position_reporting_date) → positions(id, reporting_date)
+    position_reporting_date: Mapped[date] = mapped_column(Date, nullable=False)
     collateral_type: Mapped[str] = mapped_column(String(40), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=False, default="")
     market_value: Mapped[Decimal] = mapped_column(MONEY, nullable=False)

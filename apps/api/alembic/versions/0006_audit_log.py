@@ -47,17 +47,19 @@ def upgrade() -> None:
     op.create_index("ix_audit_log_sequence", "audit_log", ["sequence_number"], unique=True)
 
     # DB-level immutability trigger: reject any UPDATE or DELETE on audit_log
+    # asyncpg requires each statement in a separate execute() call
     op.execute("""
         CREATE OR REPLACE FUNCTION audit_log_immutable()
         RETURNS TRIGGER AS $$
         BEGIN
             RAISE EXCEPTION 'audit_log is append-only: UPDATE and DELETE are forbidden';
         END;
-        $$ LANGUAGE plpgsql;
-
+        $$ LANGUAGE plpgsql
+    """)
+    op.execute("""
         CREATE TRIGGER trg_audit_log_immutable
         BEFORE UPDATE OR DELETE ON audit_log
-        FOR EACH ROW EXECUTE FUNCTION audit_log_immutable();
+        FOR EACH ROW EXECUTE FUNCTION audit_log_immutable()
     """)
 
 
