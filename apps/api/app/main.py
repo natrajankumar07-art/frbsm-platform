@@ -1,44 +1,97 @@
-"""FastAPI application factory and lifespan management."""
+"""
+FastAPI application factory.
+
+Startup order:
+  1. Logging (structlog) — must be first so all subsequent logs are formatted
+  2. OpenTelemetry — traces must be active before any routes handle requests
+  3. FastAPI app creation — title, docs, version
+  4. Middleware registration — outermost first (request ID → CORS)
+  5. Exception handlers
+  6. Router inclusion
+"""
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .config import settings
-from .db.session import engine
+from .errors import (
+    http_exception_handler,
+    unhandled_exception_handler,
+    validation_exception_handler,
+)
+from .logging import configure_logging
+from .middleware import RequestIDMiddleware
+from .routers import health as health_router
+from .telemetry import instrument_fastapi, instrument_sqlalchemy, setup_telemetry
+
+# ---------------------------------------------------------------------------
+# Logging — configure before the first logger call
+# ---------------------------------------------------------------------------
+configure_logging(
+    log_level=settings.log_level,
+    json_logs=settings.app_mode.value in ("production", "staging"),
+)
 
 logger = structlog.get_logger(__name__)
 
 
+# ---------------------------------------------------------------------------
+# Lifespan
+# ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Startup and shutdown lifecycle."""
+    from .db.session import engine
+
     logger.info(
         "bsm_api_starting",
         mode=settings.app_mode,
         debug=settings.debug,
     )
-    # Future sprints will add: OTel tracer init, connection pool warmup, etc.
+
+    setup_telemetry(
+        service_name=settings.otel_service_name,
+        otlp_endpoint=settings.otel_exporter_otlp_endpoint,
+        db_url=settings.database_url,
+    )
+    instrument_fastapi(app)
+    instrument_sqlalchemy(engine)
+
+    logger.info("bsm_api_ready")
     yield
+
     logger.info("bsm_api_stopping")
     await engine.dispose()
+    logger.info("bsm_api_stopped")
 
+
+# ---------------------------------------------------------------------------
+# Determine docs visibility
+# docs are available in local + staging; disabled in production unless debug
+# ---------------------------------------------------------------------------
+_show_docs = settings.debug or settings.app_mode.value in ("local", "staging", "demo")
 
 app = FastAPI(
     title="BSM Platform API",
-    description="AI-Powered Balance Sheet Management & Regulatory Reporting Platform",
+    description=(
+        "AI-Powered Balance Sheet Management & Regulatory Reporting Platform.\n\n"
+        "The LLM never computes regulatory numbers — Python computes them; "
+        "Claude explains and reasons about them."
+    ),
     version="2026.1.0",
-    docs_url="/docs" if settings.debug else None,
-    redoc_url="/redoc" if settings.debug else None,
-    openapi_url="/openapi.json" if settings.debug else None,
+    docs_url="/docs" if _show_docs else None,
+    redoc_url="/redoc" if _show_docs else None,
+    openapi_url="/openapi.json" if _show_docs else None,
     lifespan=lifespan,
 )
 
 # ---------------------------------------------------------------------------
-# CORS
+# Middleware — outermost added last (executed first)
 # ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
@@ -49,26 +102,17 @@ app.add_middleware(
     expose_headers=["X-Request-ID", "X-Demo-Mode"],
 )
 
+# RequestIDMiddleware must be inside CORS so the response header is visible
+app.add_middleware(RequestIDMiddleware)
 
 # ---------------------------------------------------------------------------
-# Health endpoints — always available, no auth required
+# Exception handlers
 # ---------------------------------------------------------------------------
-@app.get("/health", tags=["health"])
-async def health() -> dict[str, str]:
-    return {"status": "ok", "version": "2026.1.0", "mode": settings.app_mode}
+app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
+app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignore[arg-type]
 
-
-@app.get("/health/db", tags=["health"])
-async def health_db() -> dict[str, object]:
-    """Verify database connectivity. Used by load balancer health checks."""
-    from time import monotonic
-
-    from sqlalchemy import text
-
-    from .db.session import async_session_factory
-
-    start = monotonic()
-    async with async_session_factory() as session:
-        await session.execute(text("SELECT 1"))
-    latency_ms = round((monotonic() - start) * 1000, 1)
-    return {"status": "ok", "latency_ms": latency_ms}
+# ---------------------------------------------------------------------------
+# Routers
+# ---------------------------------------------------------------------------
+app.include_router(health_router.router)

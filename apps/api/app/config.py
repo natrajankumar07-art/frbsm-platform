@@ -1,21 +1,32 @@
 """Application configuration — all settings read from environment variables."""
 
+from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from domain.enums import AppMode
+
+# Resolve the project root .env regardless of the working directory.
+# config.py lives at apps/api/app/config.py → four levels up is the repo root.
+_REPO_ROOT_ENV = Path(__file__).parent.parent.parent.parent / ".env"
 
 
 class Settings(BaseSettings):
     """
     Platform configuration loaded from environment variables.
 
+    Env file resolution order (later values win):
+      1. <repo-root>/.env    — shared local defaults
+      2. .env in CWD        — per-directory overrides (useful for apps/api/.env)
+      3. Actual environment variables — always highest priority
+
     See .env.example for all variables and their defaults.
     NEVER hardcode secrets here — use environment variables or Vault.
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=[str(_REPO_ROOT_ENV), ".env"],
         env_file_encoding="utf-8",
         case_sensitive=False,
     )

@@ -9,10 +9,13 @@ WORKDIR /workspace
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Copy workspace configuration first (layer cache optimisation)
+# Copy workspace configuration first (layer cache optimisation).
+# All workspace member pyproject.toml files are needed for uv to resolve the
+# full dependency graph before copying application source.
 COPY pyproject.toml uv.lock ./
 COPY shared/ shared/
 COPY apps/api/pyproject.toml apps/api/
+COPY apps/workers/pyproject.toml apps/workers/
 
 # ---------------------------------------------------------------------------
 # Builder: install all dependencies
@@ -23,15 +26,27 @@ RUN uv sync --frozen --no-dev --no-install-project --all-packages
 
 # ---------------------------------------------------------------------------
 # Development: full workspace with hot-reload
+#
+# The compose volume mount (.:/workspace) overlays the image at runtime,
+# replacing the build-time .venv with the host macOS venv (which the Linux
+# container cannot use). We therefore install into UV_PROJECT_ENVIRONMENT=/opt/venv
+# (outside the mounted path) so the venv survives the mount and is always usable.
 # ---------------------------------------------------------------------------
 FROM base AS development
 
-# Install with dev dependencies for running tests in container
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Install with dev dependencies; writes into /opt/venv, not /workspace/.venv
 COPY . .
 RUN uv sync --frozen --all-packages
 
 EXPOSE 8000
-CMD ["uv", "run", "uvicorn", "app.main:app", \
+
+# Run from apps/api so that app.main resolves correctly.
+# uv run uses UV_PROJECT_ENVIRONMENT=/opt/venv automatically.
+CMD ["uv", "run", "--directory", "/workspace/apps/api", "uvicorn", "app.main:app", \
      "--host", "0.0.0.0", \
      "--port", "8000", \
      "--reload", \
