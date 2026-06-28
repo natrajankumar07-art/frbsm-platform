@@ -29,6 +29,7 @@ from .logging import configure_logging
 from .middleware import RequestIDMiddleware
 from .routers import health as health_router
 from .routers import (
+    analytics as analytics_router,
     cashflows as cashflows_router,
     counterparties as counterparties_router,
     legal_entities as legal_entities_router,
@@ -136,3 +137,4 @@ app.include_router(cashflows_router.router)
 app.include_router(snapshots_router.router)
 app.include_router(scenarios_router.router)
 app.include_router(stress_tests_router.router)
+app.include_router(analytics_router.router)

@@ -1,4 +1,14 @@
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AppShell } from "./components/layout/AppShell";
+import { Login } from "./pages/Login";
+import { Dashboard } from "./pages/Dashboard";
+import { PositionList } from "./pages/positions/PositionList";
+import { ScenarioList } from "./pages/scenarios/ScenarioList";
+import { LCRDashboard } from "./pages/analytics/LCRDashboard";
+import { NSFRDashboard } from "./pages/analytics/NSFRDashboard";
+import { BalanceSheetDashboard } from "./pages/analytics/BalanceSheetDashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -9,20 +19,30 @@ const queryClient = new QueryClient({
   },
 });
 
-/**
- * Root application shell.
- *
- * Epic 1 will mount the router and global layout here.
- * For Epic 0, this renders a health-check placeholder so the build validates.
- */
+function RequireAuth() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <AppShell />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex h-full items-center justify-center">
-        <p className="text-text-secondary font-mono text-sm">
-          BSM Platform — Epic 0 scaffold complete
-        </p>
-      </div>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route element={<RequireAuth />}>
+              <Route index element={<Dashboard />} />
+              <Route path="positions" element={<PositionList />} />
+              <Route path="scenarios" element={<ScenarioList />} />
+              <Route path="analytics/lcr" element={<LCRDashboard />} />
+              <Route path="analytics/nsfr" element={<NSFRDashboard />} />
+              <Route path="analytics/balance-sheet" element={<BalanceSheetDashboard />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
