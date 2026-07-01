@@ -40,6 +40,7 @@ from .routers import (
     scenarios as scenarios_router,
     snapshots as snapshots_router,
     stress_tests as stress_tests_router,
+    workflow as workflow_router,
 )
 from .telemetry import instrument_fastapi, instrument_sqlalchemy, setup_telemetry
 
@@ -140,3 +141,4 @@ app.include_router(scenarios_router.router)
 app.include_router(stress_tests_router.router)
 app.include_router(analytics_router.router)
 app.include_router(copilot_router.router)
+app.include_router(workflow_router.router)

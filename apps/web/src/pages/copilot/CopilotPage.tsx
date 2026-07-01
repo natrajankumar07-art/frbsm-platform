@@ -5,13 +5,16 @@ import {
   useState,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, Plus, Send, Trash2, AlertCircle } from "lucide-react";
+import { Bot, Plus, Send, Trash2, AlertCircle, FileText, ShieldCheck } from "lucide-react";
 import { clsx } from "clsx";
 import { useStreamingChat } from "../../hooks/useStreamingChat";
 import { ChatMessage, type Message } from "../../components/copilot/ChatMessage";
 import { SuggestedPrompts } from "../../components/copilot/SuggestedPrompts";
+import { ReportPanel } from "../../components/copilot/ReportPanel";
+import { EvidencePanel } from "../../components/copilot/EvidencePanel";
 import { useEntity } from "../../context/EntityContext";
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
+import type { ToolEvidence } from "../../types/workflow";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -186,6 +189,10 @@ export function CopilotPage() {
 
   const isEmpty = messages.length === 0 && !isStreaming;
 
+  // Right panel tab state
+  const [rightTab, setRightTab] = useState<"reports" | "evidence">("reports");
+  const [lastEvidence, setLastEvidence] = useState<ToolEvidence | null>(null);
+
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
@@ -238,7 +245,7 @@ export function CopilotPage() {
       </aside>
 
       {/* ── Main panel: chat ─────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 border-r border-border">
         {/* Header */}
         <div className="h-14 border-b border-border flex items-center px-6 flex-shrink-0 gap-3">
           <Bot className="h-5 w-5 text-accent" />
@@ -363,6 +370,50 @@ export function CopilotPage() {
           </p>
         </div>
       </div>
+      {/* ── Right panel: Reports + Evidence ──────────────────────────────── */}
+      <aside className="w-72 flex-shrink-0 bg-surface flex flex-col">
+        {/* Tab bar */}
+        <div className="flex border-b border-border">
+          <button
+            onClick={() => setRightTab("reports")}
+            className={clsx(
+              "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-caption font-medium transition-colors",
+              rightTab === "reports"
+                ? "text-accent border-b-2 border-accent"
+                : "text-text-secondary hover:text-text-primary"
+            )}
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Reports
+          </button>
+          <button
+            onClick={() => setRightTab("evidence")}
+            className={clsx(
+              "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-caption font-medium transition-colors",
+              rightTab === "evidence"
+                ? "text-accent border-b-2 border-accent"
+                : "text-text-secondary hover:text-text-primary"
+            )}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Evidence
+          </button>
+        </div>
+
+        {/* Tab content */}
+        <div className="flex-1 overflow-hidden">
+          {rightTab === "reports" ? (
+            <ReportPanel
+              entityId={entity?.id ?? null}
+            />
+          ) : (
+            <EvidencePanel
+              evidence={lastEvidence}
+              toolCallsLog={[]}
+            />
+          )}
+        </div>
+      </aside>
     </div>
   );
 }

@@ -20,6 +20,8 @@ class CopilotSessionModel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     user_id: Mapped[str] = mapped_column(String(200), nullable=False, default="")
     title: Mapped[str] = mapped_column(String(500), nullable=False)
+    # JSON blob for conversation memory: active entity/snapshot, recent refs, report history
+    session_context: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     __table_args__ = (
         Index("ix_copilot_sessions_entity_id", "entity_id"),
