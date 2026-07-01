@@ -14,7 +14,7 @@ import type {
 } from "../types/api";
 
 export const http = axios.create({
-  baseURL: "/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "https://frbsm-api.onrender.com",
   headers: { "Content-Type": "application/json" },
   timeout: 15_000,
 });
