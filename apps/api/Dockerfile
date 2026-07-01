@@ -19,11 +19,26 @@ COPY apps/workers/pyproject.toml apps/workers/
 
 # ---------------------------------------------------------------------------
 # Builder: install all dependencies
+#
+# The production image runs from /app, not /workspace, so the venv must be
+# created at /app/.venv here — uv bakes this absolute path into each console
+# script's shebang (e.g. #!/app/.venv/bin/python), and that shebang breaks if
+# the venv is later copied to a different path.
+#
+# --no-editable is required for the same reason: by default uv installs
+# workspace members (app.main, shared.domain, etc.) as editable, which means
+# site-packages holds a .pth file pointing back at /workspace/... instead of
+# an actual copy of the code. That .pth path doesn't exist in the production
+# stage, so imports fail even though the venv itself is at the right path.
+# --no-editable makes uv copy the packages into site-packages for real.
 # ---------------------------------------------------------------------------
 FROM base AS builder
+
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv
+
 COPY . .
 
-RUN uv sync --frozen --no-dev --all-packages
+RUN uv sync --frozen --no-dev --no-editable --all-packages
 
 # ---------------------------------------------------------------------------
 # Development: full workspace with hot-reload
@@ -65,8 +80,9 @@ RUN groupadd --gid 1001 bsm && \
 
 WORKDIR /app
 
-# Copy installed packages from builder
-COPY --from=builder /workspace/.venv /app/.venv
+# Copy installed packages from builder (already built at /app/.venv, so
+# console script shebangs already point at the correct production path)
+COPY --from=builder /app/.venv /app/.venv
 
 # Copy application source
 COPY --chown=bsm:bsm shared/ /app/shared/
