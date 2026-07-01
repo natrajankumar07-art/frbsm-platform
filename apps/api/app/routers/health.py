@@ -32,6 +32,7 @@ _COMMIT = os.environ.get("GIT_COMMIT", "dev")
 async def health(cfg: AppSettings) -> HealthResponse:
     return HealthResponse(
         status="ok",
+        service="BSM Platform API",
         version="2026.1.0",
         mode=str(cfg.app_mode),
         commit=_COMMIT,

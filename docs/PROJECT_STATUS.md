@@ -1,7 +1,7 @@
 # BSM Platform — Project Status
 
-**Document version:** 2026-06-28  
-**Status:** Epic 1 complete and validated. Awaiting approval for Epic 2A.  
+**Document version:** 2026-07-01  
+**Status:** Epics 0, 1, 2A, 2B, 2C, and 3 complete and validated. Awaiting Epic 4 approval.  
 **Source of truth:** `build-pack/Final_Build_Pack.md`
 
 ---
@@ -80,7 +80,7 @@ Every number shown to a user or filed with a regulator is traceable to a determi
 
 ### Deployment Model
 
-**Modular Monolith:** Single FastAPI service (`apps/api`) that imports all eight compute engines as Python packages at startup. No microservices. Engines are upgraded independently via semantic versioning; the monolith is released as a single deployable unit.
+**Modular Monolith:** Single FastAPI service (`apps/api`) that imports all compute engines as Python packages at startup. No microservices. Engines are upgraded independently via semantic versioning; the monolith is released as a single deployable unit.
 
 ### Import Boundaries (enforced by `import-linter` in CI)
 
@@ -107,7 +107,7 @@ Position upload → Snapshot (DRAFT) → Snapshot locked (LOCKED)
 
 | Concern | Choice | Version | Rationale |
 |---------|--------|---------|-----------|
-| API framework | FastAPI | 0.111+ | Typed, async, auto-documented |
+| API framework | FastAPI | 0.138.1 | Typed, async, auto-documented |
 | Python runtime | CPython | 3.12 | Numerical libraries, regulatory community standard |
 | Package manager | uv | 0.11.25 | Workspace monorepo management |
 | Database | PostgreSQL | 16 | ACID, range partitioning, DDL triggers |
@@ -144,33 +144,40 @@ frbsm-platform/
 │   │   ├── app/
 │   │   │   ├── config.py       Settings; Claude model pinned
 │   │   │   ├── main.py         App factory; /health, /health/db
+│   │   │   ├── routers/        9 domain routers + analytics router
+│   │   │   ├── services/       9 domain service modules
+│   │   │   ├── repositories/   9 domain repository modules
+│   │   │   ├── schemas/        9 domain schema modules
 │   │   │   └── db/
 │   │   │       ├── base.py     DeclarativeBase, mixins
 │   │   │       ├── session.py  Async sessionmaker
-│   │   │       └── models/     8 ORM models; imported by Alembic
+│   │   │       └── models/     ORM models; imported by Alembic
 │   │   └── Dockerfile          4-stage: base→builder→dev→prod
 │   │
-│   ├── web/                    React 18 + TypeScript SPA
+│   ├── web/                    React 18 + TypeScript SPA (implemented)
 │   │   ├── src/
 │   │   │   ├── main.tsx        StrictMode React root
-│   │   │   └── App.tsx         QueryClientProvider shell
-│   │   ├── vite.config.ts      @/* alias, /api proxy
+│   │   │   ├── App.tsx         React Router + QueryClientProvider
+│   │   │   ├── pages/          7 pages (Dashboard, Login, analytics, positions, scenarios)
+│   │   │   ├── components/     Layout (AppShell, Sidebar, TopBar) + UI primitives
+│   │   │   ├── context/        AuthContext, EntityContext
+│   │   │   ├── lib/api.ts      Typed API client
+│   │   │   └── types/api.ts    Shared API types
+│   │   ├── vite.config.ts      @/* alias, /api proxy to port 8000
 │   │   ├── tailwind.config.ts  Design tokens
 │   │   └── Dockerfile          dev (Vite) + prod (nginx)
 │   │
 │   └── workers/                Background task workers (stub; Epic 5+)
 │
-├── engines/                    8 compute engines (Python stubs)
-│   ├── rwa/                    Risk-Weighted Assets
-│   ├── capital/                CET1 / Tier 1 / Total Capital
-│   ├── liquidity/              LCR / NSFR
-│   ├── irrbb/                  EVE / NII sensitivity
-│   ├── ecl/                    Expected Credit Loss (IFRS 9)
-│   ├── alm/                    ALM gap analysis
-│   ├── ftp/                    Funds Transfer Pricing
-│   └── stress/                 Stress testing
+├── engines/                    9 compute engines (all implemented)
+│   ├── common/                 Shared: models.py, audit.py, utils.py
+│   ├── liquidity/              LCR, NSFR, SLS engines
+│   ├── capital/                Capital Summary engine
+│   ├── balance_sheet/          Balance Sheet engine
+│   ├── alm/                    Cashflow + Liquidity Gap engines
+│   └── stress/                 Scenario + Stress Test engines
 │
-├── reasoning/                  Claude reasoning modules (stubs)
+├── reasoning/                  Claude reasoning modules (stubs — Epic 4)
 │   ├── prompts/_schema.json    JSON Schema all templates must satisfy
 │   ├── variance/               Period-over-period commentary
 │   ├── disclosures/            Pillar 3 drafting
@@ -179,19 +186,13 @@ frbsm-platform/
 │
 ├── shared/                     Installable Python packages
 │   ├── domain/                 Frozen Pydantic v2 domain models
-│   │   └── domain/
-│   │       ├── enums.py        All platform enumerations
-│   │       ├── position.py     Position + Collateral (with composite FK field)
-│   │       ├── snapshot.py     Snapshot (DRAFT→LOCKED→FILED lifecycle)
-│   │       ├── compute.py      ComputeRun + EngineVersion
-│   │       ├── reasoning.py    ReasoningOutput + ReasoningRun
-│   │       └── reference_data.py  RiskWeight, YieldCurve, etc.
 │   ├── audit/                  Hash-chain audit log writer
 │   ├── testing/                Shared pytest fixtures
 │   └── utils/                  Decimal / date helpers
 │
 ├── tests/
-│   ├── unit/                   13 passing tests; no I/O
+│   ├── unit/engines/           126 engine unit tests (all passing)
+│   ├── unit/                   Domain model tests (all passing)
 │   ├── integration/            Schema + FK + trigger tests (requires PostgreSQL)
 │   ├── golden/                 Determinism / regulator-example tests
 │   ├── property/               Hypothesis invariant tests
@@ -199,329 +200,276 @@ frbsm-platform/
 │   ├── determinism/            Nightly hash-stability checks
 │   └── eval_harness/           Reasoning module quality (nightly, gated)
 │
-├── reports/                    Report assemblers (stubs)
-├── workflow/                   Maker-checker state machine (stub)
-├── observability/              OpenTelemetry configuration (stub)
-├── data/demo/                  Generated demo data (not committed)
-├── ops/
-│   ├── postgres/init.sql       DB-level init: pgcrypto, UTC, bsm_app role
-│   └── demo_tenants.yaml       Demo tenant definitions (IN + US)
-├── docs/                       Documentation
-├── tools/                      Developer tooling scripts
+├── docs/
+│   ├── engine_validation_report_epic2c.md  Engine Validation Report
+│   └── frontend_validation_report_epic3.md Frontend Validation Report
 │
 ├── pyproject.toml              uv workspace root; ruff/mypy/pytest/import-linter
-├── uv.lock                     Locked dependency tree (121 packages)
-├── pnpm-workspace.yaml         Frontend workspace root
+├── uv.lock                     Locked dependency tree
 ├── docker-compose.yml          PostgreSQL 16 + API + Web dev stack
-├── ruff.toml                   Python lint rules
-├── .pre-commit-config.yaml     ruff, mypy, gitleaks hooks
 └── .github/workflows/
     ├── ci.yml                  7 jobs on every PR
     └── nightly.yml             4 jobs (determinism, property, eval, e2e)
 ```
-
-**Total tracked files:** 135
 
 ---
 
 ## 6. Completed Epics
 
 ### Epic 0 — Repository Foundation
-**Commits:** `727352a`  
+**Commit:** `727352a`  
 **Branch:** `main`
 
-Full monorepo scaffold created from scratch:
+Full monorepo scaffold: uv workspace, FastAPI skeleton, React 18 + TypeScript + Vite, Docker Compose, GitHub Actions CI (7 jobs + 4 nightly), import-linter contracts, pre-commit hooks, frozen Pydantic v2 domain models, all 8 compute engine stubs and 4 reasoning module stubs, test suite scaffolding, documentation.
 
-- uv Python workspace with 6 members (shared/domain, shared/audit, shared/testing, shared/utils, apps/api, apps/workers)
-- FastAPI application skeleton with async SQLAlchemy 2.0, Alembic, Pydantic v2 settings, lifespan management
-- React 18 + TypeScript 5 frontend with Vite, Tailwind CSS, TanStack Query
-- Docker Compose dev stack (PostgreSQL 16, API, Web)
-- Multi-stage Dockerfiles (base→builder→development→production) for both API and web
-- GitHub Actions CI (7 jobs) and nightly workflow (4 jobs)
-- Import boundary enforcement via `import-linter` (5 contracts)
-- Pre-commit hooks: ruff, mypy, gitleaks, standard file checks
-- All configuration files: `pyproject.toml`, `ruff.toml`, `uv.lock`, `pnpm-workspace.yaml`
-- Frozen Pydantic v2 domain models: Position, Collateral, Snapshot, ComputeRun, ReasoningOutput, ReferenceData enums
-- All 8 compute engine stubs and 4 reasoning module stubs
-- Test suite scaffolding: unit, integration, golden, property, e2e, determinism, eval harness conftest files
-- Documentation: `README.md`, `docs/ARCHITECTURE.md`, `docs/contributing/code_review.md`, `data/demo/README.md`
-- Ops: `ops/postgres/init.sql`, `ops/demo_tenants.yaml`
+---
 
 ### Epic 1 — Database Foundation
 **Commits:** `e11aa1f` (complete), `f0c0367` (validated)  
-**Branch:** `main` (merged from `epic-1-database`)  
-**Tag:** `v0.1-database-foundation`
+**Branch:** `main`
 
-20 Alembic migrations creating the complete PostgreSQL schema:
+20 Alembic migrations (0001→0020) creating the complete PostgreSQL schema:
 
 | Migration | Description |
 |-----------|-------------|
 | 0001 | Counterparties, positions (unpartitioned), collateral |
 | 0002 | Reference data: risk weights, HQLA haircuts, run-off rates, CCFs, yield curves |
-| 0003 | Snapshots: point-in-time frozen data |
+| 0003 | Snapshots |
 | 0004 | Compute runs: audit record for every engine invocation |
 | 0005 | Reasoning runs: audit trail for Claude invocations |
 | 0006 | Audit log: append-only, hash-chained with DDL immutability trigger |
 | 0007 | Workflow: workpapers, sign-offs, close calendar tasks |
-| 0008 | Positions re-created as range-partitioned table (by `reporting_date`); collateral gains composite FK |
+| 0008 | Positions as range-partitioned table (by `reporting_date`); collateral composite FK |
 | 0009 | Legal entities and entity-level capital requirements |
 | 0010 | Product catalog: product groups, products, behavioural assumptions |
 | 0011 | Cashflows and cashflow projections (range-partitioned by `cashflow_date`) |
 | 0012 | Balance sheet line items and summaries |
-| 0013 | LCR result tables (with HQLA, inflow, outflow components) |
+| 0013 | LCR result tables (HQLA, inflow, outflow components) |
 | 0014 | NSFR result tables (ASF and RSF components) |
 | 0015 | Capital adequacy result table (CET1, Tier 1, Total Capital, RWA, ratios) |
 | 0016 | Scenario management: scenario definitions and parameter sets |
 | 0017 | Stress testing: runs, results, position-level impacts |
 | 0018 | Structural Liquidity Statement (SLS / RBI DSB-II) |
 | 0019 | Regulatory parameter history, filings, and filing lineage |
-| 0020 | Demo seed data: 12 counterparties, 30 positions, 5 scenarios, reference data |
+| 0020 | Demo seed data: 12 counterparties, 31 positions, 5 scenarios, reference data |
+
+**Validation results:** Full downgrade-to-base → upgrade-to-head cycle confirmed. 65 tables, 96 FKs, 293 indexes. Audit log DDL trigger verified. Unit tests 13/13 pass.
 
 ---
 
-## 7. Validation Results
+### Epic 2A — FastAPI Platform Foundation
+**Commits:** `44ba6cf` (complete), `ab672c7` (validated)  
+**Branch:** `main`
 
-Comprehensive database validation was performed after Epic 1 (2026-06-28):
+FastAPI service wired to PostgreSQL via async SQLAlchemy 2.0. Health endpoints (`/health`, `/health/db`). Alembic integration. uv workspace syncing. Docker health check. 10/10 success criteria met.
 
-| Validation | Result | Detail |
-|------------|--------|--------|
-| Migration chain integrity | PASS | Linear 0001→0020; no gaps; no branches |
-| Full downgrade → upgrade cycle | PASS | All 20 migrations reversed cleanly to base, re-applied to head |
-| Tables present (Final Build Pack §4) | PASS | All 24 required entities present |
-| Total tables | PASS | 65 tables |
-| Foreign keys | PASS | 96 FKs; all RESTRICT or CASCADE; no unexpected rules |
-| Indexes | PASS | 293 indexes |
-| Partitioning (positions + cashflows) | PASS | RANGE by date; 11 annual + 1 DEFAULT partition each |
-| Audit log immutability | PASS | DDL trigger blocks UPDATE and DELETE at DB level |
-| Hash-chain fields | PASS | `entry_hash` + `prev_hash` on every audit log entry |
-| Demo seed data | PASS | 12 counterparties, 30 positions, 5 scenarios, reference data |
-| Snapshot hash integrity | PASS | `position_hash` and `reference_hash` are valid 64-char hex |
-| Unit tests (13/13) | PASS | Domain model round-trip, constraints, snapshot lifecycle |
-| ORM / migration sync | PASS | After fixing 3 discrepancies (see Known Technical Debt §12) |
-
-**Bugs found and fixed during validation (7 total):**
-
-1. `Snapshot` domain model: `reporting_date_iso: str` → `reporting_date: date`
-2. `Collateral` domain model: added missing `position_reporting_date: date` for composite FK
-3. `PositionModel` ORM: composite PK `(id, reporting_date)` was not declared — used `UUIDPrimaryKeyMixin` (single-column PK only)
-4. Unit test fixtures: wrong field names throughout (`position_id`, `carrying_value`, `rating_grade`, etc.)
-5. `pyproject.toml`: missing `[tool.uv.sources]` — workspace cross-references unresolved; `uv lock` failed
-6. Missing `uv.lock`: generated and committed; Dockerfiles updated to `--all-packages`
-7. Migration 0020 downgrade: `LIKE` on UUID columns fails — fixed with `::text` cast
+**Bugs fixed during validation:** Docker health check path; SQL echo noise removed.
 
 ---
 
-## 8. Current Git Branches
+### Epic 2B — Domain API Layer
+**Commits:** `22db6b8` (complete), `eec7ddb` (validated)  
+**Branch:** `main`
 
-| Branch | Status | Description |
-|--------|--------|-------------|
-| `main` | Active | All work merged; current HEAD is `f0c0367` |
-| `epic-1-database` | Merged | Epic 1 development branch; merged to main, retained remotely |
+9 domain modules fully implemented under `/v1/`:
 
----
+| Domain | Routes | Notes |
+|--------|--------|-------|
+| Legal Entities | CRUD + list | `sort_by` allowlist enforced |
+| Product Catalog | Groups + Products + BehavioralAssumptions | Two `sort_by` allowlists |
+| Counterparties | CRUD + list | |
+| Positions | CRUD + list + pagination | |
+| Cashflows | CRUD + list | |
+| Snapshots | CRUD + lifecycle (DRAFT→LOCKED→FILED) | |
+| Scenarios | CRUD + list | |
+| Stress Tests | CRUD + list | |
+| Capital Requirements | CRUD + list | |
 
-## 9. Release Tags
+**Total:** 55 routes. **Validation:** 71/71 checks passed.
 
-| Tag | Commit | Date | Description |
-|-----|--------|------|-------------|
-| `v0.1-database-foundation` | `f0c0367` | 2026-06-28 | Epic 1 Database Foundation — validated and complete |
-
----
-
-## 10. Outstanding Work
-
-The following was scoped for v1 but not yet started:
-
-### Compute Engines (all stubs — no business logic)
-- `engines/rwa/` — RWA credit SA, IRB-F, market risk SA, operational risk BIA/SA-OR
-- `engines/capital/` — CET1, Tier 1, Total Capital, conservation/countercyclical buffers
-- `engines/liquidity/` — LCR (HQLA, outflows, inflows), NSFR (ASF, RSF)
-- `engines/irrbb/` — EVE and NII sensitivity (6 BCBS shocks), repricing gap
-- `engines/ecl/` — IFRS 9 staging (SICR rules), ECL (PD × LGD × EAD × discount)
-- `engines/alm/` — Gap analysis, behavioural maturity overlays
-- `engines/ftp/` — Matched-maturity FTP, liquidity premium
-- `engines/stress/` — Regulatory and internal scenario application
-
-### Reasoning Modules (all stubs — no prompt logic)
-- `reasoning/variance/` — Period-over-period commentary generator
-- `reasoning/disclosures/` — Pillar 3 quantitative + qualitative drafting
-- `reasoning/conversational/` — Natural language Q&A over compute outputs
-- `reasoning/triage/` — Alert classification and reconciliation break explanation
-
-### API Layer (no endpoints yet)
-- Position ingestion API (upload, validate, stage)
-- Snapshot management (create, lock, file)
-- Engine trigger endpoints (run RWA, run LCR, etc.)
-- Workpaper assembly and sign-off API
-- User management and OIDC integration
-- WebSocket / SSE for long-running engine progress
-
-### Frontend (scaffold only — no screens)
-- Authentication flow (OIDC)
-- Dashboard: capital ratios, LCR, NSFR dials
-- Position viewer and uploader
-- Snapshot manager
-- Compute run history
-- Workpaper view and sign-off
-- Variance commentary display
-- Conversational analytics chat interface
-- Regulatory filing preparation wizard
-
-### Infrastructure
-- OIDC integration (Okta / Azure AD)
-- Object storage for snapshot binaries (S3 / GCS)
-- Secret management (HashiCorp Vault / AWS Secrets Manager)
-- TLS termination in production nginx
-- Horizontal scaling configuration for API workers
+**Bugs fixed during validation:**
+- `sort_by` silent fallback replaced with HTTP 400 across all 9 services (SQL injection prevention)
+- `SnapshotUpdate` schema was missing `status` field — lifecycle guard was unreachable; fixed
 
 ---
 
-## 11. Next Implementation Milestones
+### Epic 2C — Financial Calculation Engines
+**Commit:** `217d1e0`  
+**Branch:** `main`
 
-### Epic 2A — Data Ingestion Layer
-**Objective:** Accept position and reference data uploads; validate; create and lock snapshots.
+9 deterministic financial engines implemented under `engines/`:
 
-Deliverables:
-- Position upload API (CSV/Excel → validated `Position` domain models)
-- Reference data API (risk weights, haircuts, run-off rates, CCFs, yield curves)
-- Snapshot creation and locking logic (SHA-256 content hashing)
-- Audit log entries for every state change
-- Unit + integration tests for all endpoints
+| Engine | Module | Formula Refs |
+|--------|--------|--------------|
+| LCR | `engines/liquidity/lcr.py` | BCBS LCR30.40, LCR30.42, LCR30.43, LCR40.73 |
+| NSFR | `engines/liquidity/nsfr.py` | BCBS NSF10, NSF20, NSF30 |
+| SLS | `engines/liquidity/sls.py` | RBI DSB-II, RBI Master Direction 2019 |
+| Capital | `engines/capital/engine.py` | BCBS CRE20, CAP10, LEV10, RBI 2023 |
+| Balance Sheet | `engines/balance_sheet/engine.py` | IFRS Conceptual Framework, RBI Format A |
+| Cashflow | `engines/alm/cashflow.py` | RBI DSB-II, ALM standard |
+| Liquidity Gap | `engines/alm/gap.py` | ALM maturity gap, RBI DSB-II |
+| Scenario | `engines/stress/scenario.py` | Absolute / relative / replace shocks |
+| Stress Test | `engines/stress/engine.py` | BCBS Stress principles 2018, RBI framework |
 
-### Epic 2B — Snapshot Engine
-**Objective:** Implement the freeze-and-hash mechanism that is the contract between data and compute.
+Shared infrastructure: `engines/common/utils.py` (`canonical_hash`, `quantize`, `safe_divide`), `engines/common/audit.py` (`EngineTrace`, `EngineResult[T]`), `engines/common/models.py` (all typed input models).
 
-Deliverables:
-- Snapshot freeze service: serialises positions + reference data, computes SHA-256 hashes
-- Snapshot status machine: DRAFT → LOCKED (one-way; no rollback)
-- Position retrieval from frozen snapshot (deterministic ordering for hash consistency)
-- Golden test: same snapshot content always produces same hash
+**Engineering properties:** All arithmetic uses `decimal.Decimal`. Pure functions — no DB calls inside engines. SHA-256 canonical hash on every inputs/outputs pair. `EngineTrace` with BCBS/RBI formula refs on every result. `VERSION = "1.0.0"` in every module.
 
-### Epic 3 — RWA Engine (Credit SA)
-**Objective:** First compute engine: Basel III Standardised Approach credit risk-weighted assets.
+**Unit tests:** 126/126 passing. Full validation report: `docs/engine_validation_report_epic2c.md`.
 
-Deliverables:
-- `engines/rwa/credit_sa.py`: asset class → risk weight lookup → RWA computation
-- Golden tests against published RBI / BCBS worked examples
-- Property tests: RWA ≥ 0, RWA ≤ notional × 1250% (maximum risk weight)
-- Determinism test: same snapshot → same RWA hash
-- Full audit log integration (inputs_hash, outputs_hash, engine version, git SHA)
+**Golden validation against BSM Demo Bank (2026-03-31):**
 
-### Epic 4 — Capital Engine
-**Objective:** CET1, Tier 1, and Total Capital ratios derived from RWA output.
-
-### Epic 5 — LCR Engine
-**Objective:** LCR computation: HQLA stock, stressed net cash outflows, ratio.
-
-### Epic 6 — API Layer (Phase 1)
-**Objective:** REST endpoints wiring data ingestion, snapshot, RWA, and capital compute to the frontend.
+| Engine | Key Output | Value | Status |
+|--------|-----------|-------|--------|
+| LCR | Ratio (from components) | 26.41 | ✓ Passes (>1.0) |
+| NSFR | Ratio | 1.2727 | ✓ Passes (>1.0) |
+| Capital | CET1 ratio | 11.23% | ✓ Passes (>4.5%) |
+| Capital | T1 ratio | 12.83% | ✓ Passes (>6.0%) |
+| Capital | TCR | 16.05% | ✓ Passes (>8.0%) |
+| Capital | Leverage | 8.32% | ✓ Passes (>3.0%) |
+| Balance Sheet | Assets = Liab + Equity | 325,000 = 292,500 + 32,500 | ✓ Balanced |
 
 ---
 
-## 12. Known Technical Debt
+### Epic 3 — React Frontend + Analytics API
+**Commits:** `45bc40c` (complete), `6ba7e2f` (validated)  
+**Branch:** `main`
 
-| Item | Severity | Location | Description |
-|------|----------|----------|-------------|
-| Port 5432 conflict (local development) | Low | Dev environment | Local PostgreSQL intercepts `localhost:5432`; Alembic/asyncpg from host must use Docker network. See `dev_environment.md` in memory. |
-| `apps/workers` | Low | `apps/workers/` | Stub only; no worker framework (Prefect/Airflow) integrated yet |
-| COREP/FINREP | Deferred | `reports/regulatory/` | EU regulatory returns deferred to v2; `ReturnRegistry` extensibility preserved |
-| IRB-A (advanced) | Deferred | `engines/rwa/` | Only SA and IRB-F in v1; IRB-A deferred to v2 |
-| FRTB | Deferred | `engines/rwa/` | Fundamental Review of Trading Book deferred to v2 |
-| OIDC integration | Pending | `apps/api/app/auth/` | Auth routes not yet wired; placeholder `python-jose` dependency in place |
-| Object storage | Pending | `data/snapshot/` | Snapshot binaries currently in PostgreSQL; S3/GCS integration needed for production |
-| Reasoning eval harness | Pending | `tests/eval_harness/` | 500-case golden eval set for 4 reasoning modules defined in spec but not yet populated |
-| `pnpm-lock.yaml` | Pending | repo root | Frontend lockfile not yet generated; `pnpm install` required before first frontend CI run |
-| `apps/web` router | Pending | `apps/web/src/App.tsx` | React Router not yet mounted; `App.tsx` is a placeholder shell |
+React 18 + TypeScript SPA with Vite, Tailwind CSS, TanStack Query, Recharts. 7 pages implemented. Analytics read-only API added to backend.
+
+**Pages implemented:**
+
+| Page | Route | Data Source |
+|------|-------|-------------|
+| Login | `/login` | Placeholder auth (real auth Epic 5+) |
+| Dashboard | `/` | `/v1/snapshots`, `/v1/scenarios`, `/v1/positions` |
+| Position Browser | `/positions` | `/v1/positions` (paginated) |
+| Scenario Browser | `/scenarios` | `/v1/scenarios` |
+| LCR Dashboard | `/analytics/lcr` | `/v1/analytics/lcr` |
+| NSFR Dashboard | `/analytics/nsfr` | `/v1/analytics/nsfr` |
+| Balance Sheet | `/analytics/balance-sheet` | `/v1/analytics/balance-sheet`, `/v1/analytics/positions/summary` |
+
+**Analytics API** (`apps/api/app/routers/analytics.py` — 5 read-only GET endpoints):
+- `GET /v1/analytics/lcr` — reads `lcr_results`
+- `GET /v1/analytics/nsfr` — reads `nsfr_results`
+- `GET /v1/analytics/capital` — reads `capital_results`
+- `GET /v1/analytics/balance-sheet` — reads `balance_sheet_summaries`
+- `GET /v1/analytics/positions/summary` — aggregates `positions`
+
+**Build validation:** TypeScript strict check — 0 errors. Vite production build — 0 warnings. Full validation report: `docs/frontend_validation_report_epic3.md`.
 
 ---
 
-## 13. Current Implementation Status
+## 7. Current Git State
+
+| Branch | Status | HEAD |
+|--------|--------|------|
+| `main` | Active — working tree clean | `6ba7e2f` (Epic 3 - Frontend Validation Report) |
+
+**Commit log (6 epics, 10 commits):**
+
+```
+6ba7e2f Epic 3 - Frontend Validation Report
+45bc40c Epic 3 - React frontend and analytics API
+217d1e0 Epic 2C - Financial calculation engines
+eec7ddb Epic 2B - Fix sort_by validation and snapshot status transition
+22db6b8 Epic 2B - Domain API layer: repositories, services, routers for 9 domains
+ab672c7 Epic 2A - Fix Docker health check and SQL echo
+44ba6cf Epic 2A - FastAPI platform foundation
+f0c0367 Epic 1 - Database foundation validated
+e11aa1f Epic 1 - Database foundation complete
+727352a Epic 0 - Repository foundation
+```
+
+---
+
+## 8. Current Implementation Status
 
 ### Layer-by-layer completion
 
 | Layer | Status | Notes |
 |-------|--------|-------|
 | **Database schema** | Complete | 65 tables, 20 migrations, validated |
-| **Domain models** | Complete | 7 frozen Pydantic v2 model files in `shared/domain` |
-| **ORM models** | Complete | 8 SQLAlchemy 2.0 models in `apps/api/app/db/models/` |
-| **Compute engines** | Not started | 8 stub directories; `__init__.py` only |
-| **Reasoning modules** | Not started | 4 stub directories; prompt schema defined |
-| **API endpoints** | Not started | `app/main.py` has only `/health` and `/health/db` |
-| **Frontend screens** | Not started | `App.tsx` is a placeholder; no routes |
-| **Auth / OIDC** | Not started | Dependency included; no routes implemented |
+| **Domain models** | Complete | Frozen Pydantic v2 models in `shared/domain` |
+| **ORM models** | Complete | SQLAlchemy 2.0 models in `apps/api/app/db/models/` |
+| **API — Domain layer** | Complete | 9 domains, 55 routes, all validated |
+| **API — Analytics layer** | Complete | 5 read-only analytics endpoints |
+| **Compute engines** | Complete | 9 engines, 126/126 unit tests pass |
+| **Frontend screens** | Complete | 7 pages, TypeScript 0 errors |
+| **Reasoning modules** | Not started | 4 stub directories — Epic 4 |
+| **Auth / OIDC** | Placeholder | Login always succeeds; real auth Epic 5+ |
 | **Workflow** | Not started | DB tables exist; no business logic |
 | **Audit log writer** | Not started | `shared/audit/` stub; DB trigger exists |
-| **Observability** | Not started | `observability/` stub; OTel wired in dependencies only |
+| **Observability** | Not started | OTel wired in dependencies only |
 | **CI/CD** | Complete | 7 CI + 4 nightly jobs defined |
 | **Docker** | Complete | Multi-stage builds; `uv.lock` committed |
-| **Test infrastructure** | Complete | Conftest files for all 7 test suites |
-| **Unit tests** | 13 tests | Domain model validation; all passing |
-| **Integration tests** | Framework ready | Schema + FK + trigger tests written; requires live PostgreSQL |
-| **Golden tests** | Framework ready | Fixture loader written; no fixtures yet (engines not built) |
+| **Unit tests — engines** | 126/126 | All passing |
+| **Unit tests — domain** | Passing | Domain model round-trip and constraints |
 
-### Percentage complete (by Epic count, not effort)
+### Percentage complete
 
 ```
-Foundation (Epics 0–1):   ████████████████████  2 / 2   100%
-Core engines (Epics 2–8): ░░░░░░░░░░░░░░░░░░░░  0 / 7     0%
-Reasoning (Epics 9–11):   ░░░░░░░░░░░░░░░░░░░░  0 / 3     0%
-UI / API (Epics 12–14):   ░░░░░░░░░░░░░░░░░░░░  0 / 3     0%
-Production (Epic 15):     ░░░░░░░░░░░░░░░░░░░░  0 / 1     0%
-────────────────────────────────────────────────────────
-Overall:                                         2 / 16   12.5%
+Foundation (Epics 0–1):     ████████████████████  2 / 2   100%
+Core API + Engines (2A–2C): ████████████████████  3 / 3   100%
+Frontend (Epic 3):          ████████████████████  1 / 1   100%
+Reasoning (Epic 4):         ░░░░░░░░░░░░░░░░░░░░  0 / 1     0%
+Auth + Workflow (Epics 5+): ░░░░░░░░░░░░░░░░░░░░  0 / ?     0%
+Production hardening:       ░░░░░░░░░░░░░░░░░░░░  0 / 1     0%
+────────────────────────────────────────────────────────────
+Implemented layers (6):                           6 / ~10  ~60%
 ```
 
 ---
 
-## 14. Remaining Roadmap to MVP
+## 9. Known Limitations and Technical Debt
 
-MVP is defined as: a single bank can upload positions, run RWA + capital + LCR + NSFR, view results, and export a workpaper for human sign-off — with full audit trail.
-
-| Epic | Scope | Est. Sprints |
-|------|-------|--------------|
-| 2A | Data ingestion API (position + reference data upload, validation) | 2 |
-| 2B | Snapshot engine (freeze, hash, lock) | 1 |
-| 3 | RWA engine — Credit SA (Basel III standardised approach) | 2 |
-| 4 | Capital engine (CET1, Tier 1, Total Capital, buffers) | 2 |
-| 5 | LCR engine (HQLA, outflows, inflows) | 2 |
-| 6 | API endpoints — Phase 1 (ingest, snapshot, RWA, capital, LCR) | 2 |
-| 7 | Frontend — Phase 1 (auth, dashboard, position upload, ratio dials) | 3 |
-| 8 | Workflow — Phase 1 (workpaper assembly, maker-checker sign-off) | 2 |
-| 9 | Reasoning — Variance commentary (first reasoning module) | 2 |
-| 10 | Integration hardening (e2e tests, golden tests for all engines) | 2 |
-| **MVP Total** | | **~20 sprints** |
+| Item | Severity | Location | Description |
+|------|----------|----------|-------------|
+| Analytics reads pre-seeded data | Medium | `apps/api/app/routers/analytics.py` | Analytics endpoints read stored result rows from seed data; engines are not wired to live computation. Results update only when the result tables are updated. |
+| LCR seed data inconsistency | Low | `lcr_results` table | `total_outflows=110,000` in summary row does not match `lcr_outflow_components` sum of 20,800. Component data is self-consistent; the summary row appears to include committed facilities not in the component table. |
+| Auth is a placeholder | High | `apps/web/src/context/AuthContext.tsx` | Login always succeeds; no JWT, no session. OIDC integration reserved for Epic 5+. |
+| NSFR RSF rounding ±0.50 | Low | `nsfr_results` table | `loans_corporate_gt1y: 53,750 × 0.85 = 45,687.50` rounded to 45,688 in DB seed. Engine exact output is 197,999.50 vs seeded 198,000. Correct engine behaviour; documented in Engine Validation Report. |
+| Port 5432 conflict (local dev) | Low | Docker Compose | Local PostgreSQL intercepts `localhost:5432`; Docker remaps to 5433. See `dev_environment.md` in memory. |
+| `apps/workers` | Low | `apps/workers/` | Stub only; no worker framework integrated |
+| COREP/FINREP | Deferred | `reports/regulatory/` | EU regulatory returns deferred to v2 |
+| IRRBB, ECL, FTP engines | Not started | `engines/irrbb/`, `engines/ecl/`, `engines/ftp/` | Post-MVP engines; stubs only |
+| OIDC integration | Pending | `apps/api/app/auth/` | Placeholder only; Epic 5+ |
+| Object storage | Pending | `data/snapshot/` | Snapshot binaries in PostgreSQL; S3/GCS for production |
 
 ---
 
-## 15. Remaining Roadmap to Production
+## 10. Next: Epic 4 — AI Reasoning Layer
 
-Production requires MVP plus the following:
+The reasoning layer is the next implementation milestone. The `reasoning/` directory has stub modules; no prompt logic exists yet.
 
-| Phase | Scope |
-|-------|-------|
-| NSFR engine | Net Stable Funding Ratio (ASF, RSF) |
-| IRRBB engine | EVE and NII sensitivity, 6 BCBS shocks |
-| IFRS 9 engine | Staging (SICR) + ECL (PD × LGD × EAD) |
-| ALM engine | Gap analysis, behavioural maturity, FTP |
-| Stress testing engine | Regulatory + internal scenario shock application |
-| Reasoning — Disclosures | Pillar 3 quantitative + qualitative drafting |
-| Reasoning — Conversational | Natural language Q&A interface |
-| Reasoning — Triage | Alert classification and reconciliation breaks |
-| Frontend — Phase 2 | Full workpaper, regulatory return wizard, conversational UI |
-| API — Phase 2 | Remaining engine endpoints, WebSocket progress, filing export |
-| OIDC / Auth | Okta / Azure AD integration, session management |
-| Object storage | S3/GCS for snapshot binaries (production scale) |
-| Observability | Full OpenTelemetry pipeline → Datadog / Grafana dashboards |
-| Phase 27 — Production hardening | Reasoning audit, determinism proof, DR testing, security hardening, performance SLA validation |
-| COREP/FINREP (v2) | EU regulatory returns, ReturnRegistry extensibility |
+Candidate scope (pending approval):
+- `reasoning/variance/` — Period-over-period commentary on LCR, NSFR, capital ratios
+- `reasoning/conversational/` — Natural language Q&A over compute outputs
+- `reasoning/disclosures/` — Pillar 3 quantitative + qualitative drafting
+- `reasoning/triage/` — Alert classification and reconciliation break explanation
 
-**Phase 27 (Final productionisation)** per `build-pack/Phase27.md` is a standalone phase covering:
+**Constraint:** The reasoning layer must never compute regulatory numbers. It reads `EngineResult` outputs (which include `EngineTrace` with formula refs and hashes) and produces explanatory text only. Every reasoning output must be logged to `reasoning_runs` with a hash of the input compute result it is explaining.
+
+---
+
+## 11. Remaining Roadmap to Production
+
+| Phase | Scope | Status |
+|-------|-------|--------|
+| Epic 4 | AI Reasoning layer (variance commentary, conversational Q&A) | Pending approval |
+| Epic 5 | Auth + OIDC (Okta / Azure AD, JWT, session management) | Not started |
+| Epic 6 | Workflow (workpaper assembly, maker-checker sign-off) | Not started |
+| Epic 7 | Engine wiring (live computation from API, not pre-seeded results) | Not started |
+| Epic 8 | Additional engines (IRRBB, ECL, FTP) | Not started |
+| Epic 9 | Frontend Phase 2 (workpaper view, regulatory wizard, conversational UI) | Not started |
+| Phase 27 | Production hardening (pen test, DR drill, SLA validation, audit) | Not started |
+
+**Phase 27 (Final productionisation)** per `build-pack/Phase27.md`:
 - Reasoning layer boundary audit + eval harness (500+ cases, ≥95% pass rate)
 - Historical reproduction test (12 months of filings, bit-identical)
 - Security hardening (pen test, vault integration, TLS enforcement)
 - Performance validation against SLAs (LCR ≤ 5 min, capital ≤ 30 min, Q&A ≤ 3s)
 - Disaster recovery drill and runbooks
-- Deployment checklist sign-off (`build-pack/Deployment_Checklist.md`)
 
 ---
 

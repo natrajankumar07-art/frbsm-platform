@@ -144,4 +144,6 @@ export interface HealthStatus {
   status: string;
   service: string;
   version: string;
+  mode: string;
+  commit: string;
 }

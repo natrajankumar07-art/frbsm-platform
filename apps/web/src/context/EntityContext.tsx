@@ -30,7 +30,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (entities.length > 0 && !selected) {
-      setSelected(entities[0]);
+      const reporting = entities.find((e) => e.is_reporting_entity);
+      setSelected(reporting ?? entities[0]);
     }
   }, [entities, selected]);
 

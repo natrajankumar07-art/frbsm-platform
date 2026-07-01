@@ -1,25 +1,22 @@
 FROM node:20-slim AS base
-RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
 # ── deps ──────────────────────────────────────────────────────────────────────
 FROM base AS deps
-COPY pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/web/package.json ./apps/web/
-RUN pnpm install --frozen-lockfile
+COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
+WORKDIR /app/apps/web
+RUN npm ci --prefer-offline
 
 # ── development ───────────────────────────────────────────────────────────────
 FROM deps AS development
-COPY apps/web/ ./apps/web/
-WORKDIR /app/apps/web
+COPY apps/web/ /app/apps/web/
 EXPOSE 3000
-CMD ["pnpm", "dev", "--host"]
+CMD ["npm", "run", "dev", "--", "--host"]
 
 # ── builder ───────────────────────────────────────────────────────────────────
 FROM deps AS builder
-COPY apps/web/ ./apps/web/
-WORKDIR /app/apps/web
-RUN pnpm build
+COPY apps/web/ /app/apps/web/
+RUN npm run build
 
 # ── production ────────────────────────────────────────────────────────────────
 FROM nginx:1.27-alpine AS production
