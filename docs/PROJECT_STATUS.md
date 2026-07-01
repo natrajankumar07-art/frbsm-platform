@@ -1,7 +1,7 @@
 # BSM Platform — Project Status
 
 **Document version:** 2026-07-01  
-**Status:** Epics 0, 1, 2A, 2B, 2C, and 3 complete and validated. Awaiting Epic 4 approval.  
+**Status:** Epics 0, 1, 2A, 2B, 2C, 3, 3.1, 4A, 4B, and 4C complete. Awaiting Epic 4D approval.  
 **Source of truth:** `build-pack/Final_Build_Pack.md`
 
 ---
@@ -364,11 +364,15 @@ React 18 + TypeScript SPA with Vite, Tailwind CSS, TanStack Query, Recharts. 7 p
 
 | Branch | Status | HEAD |
 |--------|--------|------|
-| `main` | Active — working tree clean | `6ba7e2f` (Epic 3 - Frontend Validation Report) |
+| `main` | Active — working tree clean | `f953e33` (Epic 4C - AI Workflow and Report Automation) |
 
-**Commit log (6 epics, 10 commits):**
+**Commit log (10 epics, 14 commits):**
 
 ```
+f953e33 Epic 4C - AI Workflow and Report Automation
+6ea1f6c Epic 4B - Banking Intelligence Layer
+0d0648d Epic 4A - AI Copilot infrastructure
+5be3e36 Epic 3.1 - Frontend stabilization
 6ba7e2f Epic 3 - Frontend Validation Report
 45bc40c Epic 3 - React frontend and analytics API
 217d1e0 Epic 2C - Financial calculation engines
@@ -380,6 +384,13 @@ f0c0367 Epic 1 - Database foundation validated
 e11aa1f Epic 1 - Database foundation complete
 727352a Epic 0 - Repository foundation
 ```
+
+**Git tags:**
+- `v0.1-database-foundation` — Epic 1
+- `v0.3-frontend-stable` — Epic 3.1
+- `v0.4-copilot-infrastructure` — Epic 4A
+- `v0.4-banking-intelligence` — Epic 4B
+- `v0.4-ai-workflow` — Epic 4C
 
 ---
 
@@ -396,7 +407,7 @@ e11aa1f Epic 1 - Database foundation complete
 | **API — Analytics layer** | Complete | 5 read-only analytics endpoints |
 | **Compute engines** | Complete | 9 engines, 126/126 unit tests pass |
 | **Frontend screens** | Complete | 7 pages, TypeScript 0 errors |
-| **Reasoning modules** | Not started | 4 stub directories — Epic 4 |
+| **Reasoning modules** | Complete | 7 reasoning modules (Epics 4A/4B/4C) |
 | **Auth / OIDC** | Placeholder | Login always succeeds; real auth Epic 5+ |
 | **Workflow** | Not started | DB tables exist; no business logic |
 | **Audit log writer** | Not started | `shared/audit/` stub; DB trigger exists |
@@ -412,11 +423,11 @@ e11aa1f Epic 1 - Database foundation complete
 Foundation (Epics 0–1):     ████████████████████  2 / 2   100%
 Core API + Engines (2A–2C): ████████████████████  3 / 3   100%
 Frontend (Epic 3):          ████████████████████  1 / 1   100%
-Reasoning (Epic 4):         ░░░░░░░░░░░░░░░░░░░░  0 / 1     0%
+AI Copilot (Epics 4A–4C):   ████████████████████  3 / 3   100%
 Auth + Workflow (Epics 5+): ░░░░░░░░░░░░░░░░░░░░  0 / ?     0%
 Production hardening:       ░░░░░░░░░░░░░░░░░░░░  0 / 1     0%
 ────────────────────────────────────────────────────────────
-Implemented layers (6):                           6 / ~10  ~60%
+Implemented layers (9):                           9 / ~13  ~70%
 ```
 
 ---
@@ -438,25 +449,27 @@ Implemented layers (6):                           6 / ~10  ~60%
 
 ---
 
-## 10. Next: Epic 4 — AI Reasoning Layer
+## 10. Completed: Epics 4A–4C — AI Copilot Layer
 
-The reasoning layer is the next implementation milestone. The `reasoning/` directory has stub modules; no prompt logic exists yet.
+### Epic 4A — AI Copilot Infrastructure (`0d0648d`, tag: `v0.4-copilot-infrastructure`)
+SSE streaming chat (`/v1/copilot/chat`), session CRUD, context builder (reads pre-computed LCR/NSFR/Capital/BalanceSheet from DB), AIProvider ABC + AnthropicProvider, migration 0022. Frontend: CopilotPage with session sidebar + streaming chat.
 
-Candidate scope (pending approval):
-- `reasoning/variance/` — Period-over-period commentary on LCR, NSFR, capital ratios
-- `reasoning/conversational/` — Natural language Q&A over compute outputs
-- `reasoning/disclosures/` — Pillar 3 quantitative + qualitative drafting
-- `reasoning/triage/` — Alert classification and reconciliation break explanation
+### Epic 4B — Banking Intelligence Layer (`6ea1f6c`, tag: `v0.4-banking-intelligence`)
+7 reasoning modules (Liquidity, Capital, Balance Sheet, ALM, Stress, Regulatory, Executive), intent classifier, evidence citation system, 53 prompts across 8 domains. McKinsey/BCG system prompt persona. 118/118 tests.
 
-**Constraint:** The reasoning layer must never compute regulatory numbers. It reads `EngineResult` outputs (which include `EngineTrace` with formula refs and hashes) and produces explanatory text only. Every reasoning output must be logged to `reasoning_runs` with a hash of the input compute result it is explaining.
+### Epic 4C — AI Workflow and Report Automation (`f953e33`, tag: `v0.4-ai-workflow`)
+15 AI workflow tools (ToolRegistry, ToolEvidence provenance), 10 Markdown-exportable report types with PDF/DOCX export_hints, conversation memory (SessionMemory, migration 0023), workflow executor (SSE, Anthropic tool_use API, mock fallback), 6 new API endpoints, Reports panel + Evidence panel frontend components. 85 new tests; 342/342 total pass.
+
+## 11. Next: Epic 4D (pending approval)
 
 ---
 
-## 11. Remaining Roadmap to Production
+## 12. Remaining Roadmap to Production
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| Epic 4 | AI Reasoning layer (variance commentary, conversational Q&A) | Pending approval |
+| Epics 4A–4C | AI Copilot (infrastructure, intelligence, workflows) | Complete |
+| Epic 4D | Pending approval | — |
 | Epic 5 | Auth + OIDC (Okta / Azure AD, JWT, session management) | Not started |
 | Epic 6 | Workflow (workpaper assembly, maker-checker sign-off) | Not started |
 | Epic 7 | Engine wiring (live computation from API, not pre-seeded results) | Not started |
