@@ -142,3 +142,113 @@ async def build_financial_context(
         ]
 
     return "\n".join(lines)
+
+
+async def get_financial_data(
+    db: AsyncSession,
+    entity_id: uuid.UUID | None,
+    snapshot_id: uuid.UUID | None,
+) -> dict:
+    """
+    Return raw engine result data as a plain dict for the reasoning layer.
+
+    Keys: entity_name, snapshot_date, lcr, nsfr, capital, balance_sheet.
+    Each value is a dict of raw field values (str-serialised Decimals) or None.
+    This function NEVER computes; it only reads and converts stored rows.
+    """
+    if entity_id is None or snapshot_id is None:
+        return {}
+
+    entity = await db.scalar(
+        select(LegalEntityModel).where(LegalEntityModel.id == entity_id)
+    )
+    snapshot = await db.scalar(
+        select(SnapshotModel).where(SnapshotModel.id == snapshot_id)
+    )
+    if not entity or not snapshot:
+        return {}
+
+    result: dict = {
+        "entity_name": entity.name,
+        "snapshot_date": str(snapshot.reporting_date),
+        "lcr": None,
+        "nsfr": None,
+        "capital": None,
+        "balance_sheet": None,
+    }
+
+    lcr = await db.scalar(
+        select(LCRResultModel).where(
+            LCRResultModel.snapshot_id == snapshot_id,
+            LCRResultModel.entity_id == entity_id,
+        )
+    )
+    if lcr:
+        result["lcr"] = {
+            "lcr_ratio": str(lcr.lcr_ratio),
+            "hqla_total": str(lcr.hqla_total),
+            "total_outflows": str(lcr.total_outflows),
+            "total_inflows": str(lcr.total_inflows),
+            "net_cash_outflows": str(lcr.net_cash_outflows),
+            "minimum_ratio": str(lcr.minimum_ratio),
+            "passes": lcr.passes,
+            "inflow_cap_applied": lcr.inflow_cap_applied,
+            "currency": lcr.currency,
+        }
+
+    nsfr = await db.scalar(
+        select(NSFRResultModel).where(
+            NSFRResultModel.snapshot_id == snapshot_id,
+            NSFRResultModel.entity_id == entity_id,
+        )
+    )
+    if nsfr:
+        result["nsfr"] = {
+            "nsfr_ratio": str(nsfr.nsfr_ratio),
+            "available_stable_funding": str(nsfr.available_stable_funding),
+            "required_stable_funding": str(nsfr.required_stable_funding),
+            "minimum_ratio": str(nsfr.minimum_ratio),
+            "passes": nsfr.passes,
+            "currency": nsfr.currency,
+        }
+
+    cap = await db.scalar(
+        select(CapitalResultModel).where(
+            CapitalResultModel.snapshot_id == snapshot_id,
+            CapitalResultModel.entity_id == entity_id,
+        )
+    )
+    if cap:
+        result["capital"] = {
+            "cet1_ratio": str(cap.cet1_ratio),
+            "tier1_ratio": str(cap.tier1_ratio),
+            "total_capital_ratio": str(cap.total_capital_ratio),
+            "leverage_ratio": str(cap.leverage_ratio),
+            "cet1_capital": str(cap.cet1_capital),
+            "additional_tier1": str(cap.additional_tier1),
+            "tier2_capital": str(cap.tier2_capital),
+            "total_capital": str(cap.total_capital),
+            "total_rwa": str(cap.total_rwa),
+            "rwa_credit": str(cap.rwa_credit),
+            "rwa_market": str(cap.rwa_market),
+            "rwa_operational": str(cap.rwa_operational),
+            "passes_all": cap.passes_all,
+            "currency": cap.currency,
+        }
+
+    bs = await db.scalar(
+        select(BalanceSheetSummaryModel).where(
+            BalanceSheetSummaryModel.snapshot_id == snapshot_id,
+            BalanceSheetSummaryModel.entity_id == entity_id,
+        )
+    )
+    if bs:
+        result["balance_sheet"] = {
+            "total_assets": str(bs.total_assets),
+            "total_liabilities": str(bs.total_liabilities),
+            "total_equity": str(bs.total_equity),
+            "off_balance_sheet": str(bs.total_off_balance_sheet),
+            "currency": bs.currency,
+        }
+
+    return result
