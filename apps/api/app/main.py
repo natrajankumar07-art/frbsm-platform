@@ -31,6 +31,7 @@ from .routers import health as health_router
 from .routers import (
     agent as agent_router,
     analytics as analytics_router,
+    autonomous as autonomous_router,
     cashflows as cashflows_router,
     copilot as copilot_router,
     counterparties as counterparties_router,
@@ -61,7 +62,10 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    import asyncio
+
     from .db.session import engine
+    from .services.ai.autonomous.scheduler import run_scheduler
 
     logger.info(
         "bsm_api_starting",
@@ -77,10 +81,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     instrument_fastapi(app)
     instrument_sqlalchemy(engine)
 
+    scheduler_task = asyncio.create_task(run_scheduler())
+    logger.info("autonomous_scheduler_task_started")
+
     logger.info("bsm_api_ready")
     yield
 
     logger.info("bsm_api_stopping")
+    scheduler_task.cancel()
+    try:
+        await scheduler_task
+    except asyncio.CancelledError:
+        pass
     await engine.dispose()
     logger.info("bsm_api_stopped")
 
@@ -144,3 +156,4 @@ app.include_router(analytics_router.router)
 app.include_router(copilot_router.router)
 app.include_router(workflow_router.router)
 app.include_router(agent_router.router)
+app.include_router(autonomous_router.router)

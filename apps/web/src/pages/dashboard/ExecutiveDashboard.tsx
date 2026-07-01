@@ -13,6 +13,9 @@ import { TrendChart, type TrendDataPoint } from "../../components/dashboard/Tren
 import { ExecutiveDashTimeline, type ExecutiveTimelineEvent } from "../../components/dashboard/ExecutiveDashTimeline";
 import { ExecutiveReports } from "../../components/dashboard/ExecutiveReports";
 import { AskSAMButton } from "../../components/dashboard/AskSAMButton";
+import { AlertCenter } from "../../components/autonomous/AlertCenter";
+import { ActivityFeed } from "../../components/autonomous/ActivityFeed";
+import { RecommendationsPanel } from "../../components/autonomous/RecommendationsPanel";
 import type { LCRResult, NSFRResult, CapitalResult, Snapshot } from "../../types/api";
 
 // ---------------------------------------------------------------------------
@@ -397,6 +400,18 @@ export function ExecutiveDashboard() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ExecutiveDashTimeline events={timeline} />
         <ExecutiveReports />
+      </div>
+
+      {/* Row 6: Autonomous Intelligence */}
+      <div>
+        <h2 className="text-body font-semibold text-text-secondary dark:text-gray-400 mb-3 uppercase tracking-wide text-xs">
+          Autonomous Intelligence — SAM
+        </h2>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <AlertCenter />
+          <RecommendationsPanel />
+          <ActivityFeed />
+        </div>
       </div>
     </div>
   );

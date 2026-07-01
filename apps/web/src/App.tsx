@@ -12,6 +12,9 @@ import { LCRDashboard } from "./pages/analytics/LCRDashboard";
 import { NSFRDashboard } from "./pages/analytics/NSFRDashboard";
 import { BalanceSheetDashboard } from "./pages/analytics/BalanceSheetDashboard";
 import { CopilotPage } from "./pages/copilot/CopilotPage";
+import { BriefingsPage } from "./pages/autonomous/BriefingsPage";
+import { IssuesPage } from "./pages/autonomous/IssuesPage";
+import { ScheduledReportsPage } from "./pages/autonomous/ScheduledReportsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +48,9 @@ export default function App() {
               <Route path="analytics/nsfr" element={<NSFRDashboard />} />
               <Route path="analytics/balance-sheet" element={<BalanceSheetDashboard />} />
               <Route path="copilot" element={<CopilotPage />} />
+              <Route path="autonomous/briefings" element={<BriefingsPage />} />
+              <Route path="autonomous/issues" element={<IssuesPage />} />
+              <Route path="autonomous/scheduled-reports" element={<ScheduledReportsPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

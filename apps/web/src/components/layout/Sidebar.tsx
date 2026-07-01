@@ -10,6 +10,9 @@ import {
   LogOut,
   Bot,
   BarChart3,
+  FileText,
+  AlertTriangle,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -70,6 +73,32 @@ export function Sidebar() {
           <Bot className="h-4 w-4 flex-shrink-0" />
           AI Copilot
         </NavLink>
+
+        {/* Autonomous Intelligence separator */}
+        <div className="border-t border-border my-2" />
+        <p className="px-3 py-1 text-xs font-semibold text-text-secondary/50 uppercase tracking-wider">SAM Autonomous</p>
+
+        {[
+          { to: "/autonomous/briefings", label: "Briefings", icon: FileText },
+          { to: "/autonomous/issues", label: "Issues", icon: AlertTriangle },
+          { to: "/autonomous/scheduled-reports", label: "Scheduled Reports", icon: Clock },
+        ].map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              clsx(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-body transition-colors",
+                isActive
+                  ? "bg-accent/10 text-accent font-medium"
+                  : "text-text-secondary hover:bg-border hover:text-text-primary"
+              )
+            }
+          >
+            <Icon className="h-4 w-4 flex-shrink-0" />
+            {label}
+          </NavLink>
+        ))}
       </nav>
 
       <div className="border-t border-border p-3">
