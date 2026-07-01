@@ -82,6 +82,51 @@ class SessionMemory:
             parts.append(f"Last report: {last_rpt['report_type']} ({last_rpt['generated_at'][:10]})")
         return " | ".join(parts) if parts else ""
 
+    def resolve_reference(self, reference: str | None) -> dict:
+        """
+        Resolve a conversational reference from session memory.
+
+        Returns a dict with resolved keys relevant to the reference type.
+        Used by the SAM Planner (Epic 4D) to resolve phrases like
+        "same entity", "last month", "generate another report".
+        """
+        if not reference:
+            return {}
+
+        if reference == "active_entity":
+            return {
+                "entity_id": self.active_entity_id,
+                "entity_name": self.active_entity_name,
+            }
+
+        if reference == "active_snapshot":
+            return {
+                "snapshot_id": self.active_snapshot_id,
+                "snapshot_date": self.active_snapshot_date,
+            }
+
+        if reference in ("previous_month", "previous_quarter", "previous_year", "previous_day", "previous_period"):
+            # Return the second most-recent snapshot if available
+            if len(self.recent_snapshot_ids) >= 2:
+                return {"snapshot_id": self.recent_snapshot_ids[1]}
+            return {"snapshot_id": self.active_snapshot_id}
+
+        if reference == "repeat_analysis":
+            # Return last tool call info so planner can replicate it
+            if self.last_tool_calls:
+                last = self.last_tool_calls[0]
+                return {"repeat_tool": last.get("tool"), "repeat_summary": last.get("summary")}
+            return {}
+
+        if reference == "repeat_report":
+            # Return last report type for re-generation
+            if self.report_history:
+                last_rpt = self.report_history[0]
+                return {"report_type": last_rpt.get("report_type")}
+            return {}
+
+        return {}
+
     def to_dict(self) -> dict:
         return asdict(self)
 

@@ -5,13 +5,17 @@ import {
   useState,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, Plus, Send, Trash2, AlertCircle, FileText, ShieldCheck } from "lucide-react";
+import { Bot, Plus, Send, Trash2, AlertCircle, FileText, ShieldCheck, LayoutList, Bell } from "lucide-react";
 import { clsx } from "clsx";
 import { useStreamingChat } from "../../hooks/useStreamingChat";
 import { ChatMessage, type Message } from "../../components/copilot/ChatMessage";
 import { SuggestedPrompts } from "../../components/copilot/SuggestedPrompts";
 import { ReportPanel } from "../../components/copilot/ReportPanel";
 import { EvidencePanel } from "../../components/copilot/EvidencePanel";
+import { AgentProfile } from "../../components/copilot/AgentProfile";
+import { ExecutionTimeline, type TimelineEvent } from "../../components/copilot/ExecutionTimeline";
+import { PlannerPanel, type ActivePlan } from "../../components/copilot/PlannerPanel";
+import { AlertPanel } from "../../components/copilot/AlertPanel";
 import { useEntity } from "../../context/EntityContext";
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import type { ToolEvidence } from "../../types/workflow";
@@ -131,6 +135,7 @@ export function CopilotPage() {
 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setAgentStatus("thinking");
 
     await sendMessage(text, {
       sessionId: activeSessionId,
@@ -153,6 +158,7 @@ export function CopilotPage() {
       );
       void refetchSessions();
     }
+    setAgentStatus("idle");
   }, [input, isStreaming, sendMessage, activeSessionId, entity?.id, sessionId, refetchSessions]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -190,8 +196,11 @@ export function CopilotPage() {
   const isEmpty = messages.length === 0 && !isStreaming;
 
   // Right panel tab state
-  const [rightTab, setRightTab] = useState<"reports" | "evidence">("reports");
+  const [rightTab, setRightTab] = useState<"reports" | "evidence" | "planner" | "alerts">("reports");
   const [lastEvidence, setLastEvidence] = useState<ToolEvidence | null>(null);
+  const [agentTimeline, setAgentTimeline] = useState<TimelineEvent[]>([]);
+  const [activePlan, setActivePlan] = useState<ActivePlan | null>(null);
+  const [agentStatus, setAgentStatus] = useState<"idle" | "thinking" | "active">("idle");
 
   // ---------------------------------------------------------------------------
   // Render
@@ -248,17 +257,17 @@ export function CopilotPage() {
       <div className="flex-1 flex flex-col min-w-0 border-r border-border">
         {/* Header */}
         <div className="h-14 border-b border-border flex items-center px-6 flex-shrink-0 gap-3">
-          <Bot className="h-5 w-5 text-accent" />
-          <div>
-            <span className="text-heading font-semibold text-text-primary">
-              FRBSM AI Copilot
+          <AgentProfile
+            name="SAM"
+            title="Supervisory AI Manager"
+            status={agentStatus}
+            compact
+          />
+          {entity && (
+            <span className="text-caption text-text-secondary ml-1">
+              · {entity.name}
             </span>
-            {entity && (
-              <span className="text-caption text-text-secondary ml-2">
-                · {entity.name}
-              </span>
-            )}
-          </div>
+          )}
           {isStreaming && (
             <span className="ml-auto text-caption text-accent animate-pulse">
               Generating…
@@ -370,48 +379,53 @@ export function CopilotPage() {
           </p>
         </div>
       </div>
-      {/* ── Right panel: Reports + Evidence ──────────────────────────────── */}
+      {/* ── Right panel: Reports + Evidence + Planner + Alerts ──────────── */}
       <aside className="w-72 flex-shrink-0 bg-surface flex flex-col">
-        {/* Tab bar */}
+        {/* Tab bar — 4 tabs */}
         <div className="flex border-b border-border">
-          <button
-            onClick={() => setRightTab("reports")}
-            className={clsx(
-              "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-caption font-medium transition-colors",
-              rightTab === "reports"
-                ? "text-accent border-b-2 border-accent"
-                : "text-text-secondary hover:text-text-primary"
-            )}
-          >
-            <FileText className="h-3.5 w-3.5" />
-            Reports
-          </button>
-          <button
-            onClick={() => setRightTab("evidence")}
-            className={clsx(
-              "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-caption font-medium transition-colors",
-              rightTab === "evidence"
-                ? "text-accent border-b-2 border-accent"
-                : "text-text-secondary hover:text-text-primary"
-            )}
-          >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Evidence
-          </button>
+          {(
+            [
+              { id: "reports", icon: <FileText className="h-3 w-3" />, label: "Reports" },
+              { id: "evidence", icon: <ShieldCheck className="h-3 w-3" />, label: "Evidence" },
+              { id: "planner", icon: <LayoutList className="h-3 w-3" />, label: "Plan" },
+              { id: "alerts", icon: <Bell className="h-3 w-3" />, label: "Alerts" },
+            ] as const
+          ).map(({ id, icon, label }) => (
+            <button
+              key={id}
+              onClick={() => setRightTab(id)}
+              className={clsx(
+                "flex-1 flex items-center justify-center gap-1 py-2.5 text-caption font-medium transition-colors",
+                rightTab === id
+                  ? "text-accent border-b-2 border-accent"
+                  : "text-text-secondary hover:text-text-primary"
+              )}
+            >
+              {icon}
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-hidden">
-          {rightTab === "reports" ? (
-            <ReportPanel
-              entityId={entity?.id ?? null}
-            />
-          ) : (
-            <EvidencePanel
-              evidence={lastEvidence}
-              toolCallsLog={[]}
-            />
+        <div className="flex-1 overflow-y-auto">
+          {rightTab === "reports" && (
+            <ReportPanel entityId={entity?.id ?? null} />
           )}
+          {rightTab === "evidence" && (
+            <EvidencePanel evidence={lastEvidence} toolCallsLog={[]} />
+          )}
+          {rightTab === "planner" && (
+            <div className="space-y-3 py-2">
+              <ExecutionTimeline events={agentTimeline} planId={activePlan?.plan_id} />
+              {activePlan && (
+                <div className="border-t border-border pt-2">
+                  <PlannerPanel plan={activePlan} isExecuting={isStreaming} />
+                </div>
+              )}
+            </div>
+          )}
+          {rightTab === "alerts" && <AlertPanel />}
         </div>
       </aside>
     </div>

@@ -62,3 +62,78 @@ export interface SessionMemory {
   report_history: Array<{ report_type: string; generated_at: string }>;
   last_tool_calls: Array<{ tool: string; summary: string; timestamp: string }>;
 }
+
+// ── Epic 4D — SAM Agent types ──────────────────────────────────────────────
+
+export interface AgentSseEvent {
+  type:
+    | "intent_analyzed"
+    | "plan_created"
+    | "plan_start"
+    | "step_start"
+    | "step_complete"
+    | "step_failed"
+    | "step_skipped"
+    | "plan_complete"
+    | "timeline_ready"
+    | "agent_done"
+    | "error";
+  // intent_analyzed
+  intent?: string;
+  domains?: string[];
+  confidence?: number;
+  // plan_created / plan_start
+  plan_id?: string;
+  total_steps?: number;
+  tool_names?: string[];
+  // step events
+  step_id?: string;
+  tool_name?: string;
+  description?: string;
+  duration_ms?: number;
+  evidence?: ToolEvidence;
+  error?: string;
+  reason?: string;
+  retry_count?: number;
+  // plan_complete
+  status?: string;
+  steps_completed?: number;
+  steps_failed?: number;
+  steps_skipped?: number;
+  // timeline_ready
+  events?: AgentTimelineEvent[];
+  execution_id?: string;
+  // agent_done
+  message?: string;
+  timestamp?: string;
+}
+
+export interface AgentTimelineEvent {
+  stage: string;
+  label: string;
+  detail: string;
+  timestamp: string;
+  status: "completed" | "running" | "pending" | "failed";
+}
+
+export interface AgentPlanStep {
+  step_id: string;
+  tool_name: string;
+  description: string;
+  status: "pending" | "running" | "completed" | "failed" | "skipped" | "retrying";
+  duration_ms?: number | null;
+  retry_count?: number;
+  error?: string | null;
+  evidence?: Record<string, unknown> | null;
+}
+
+export interface AgentPlan {
+  plan_id: string;
+  intent: string;
+  status: string;
+  steps: AgentPlanStep[];
+  steps_total: number;
+  steps_completed: number;
+  steps_failed: number;
+  steps_skipped: number;
+}
