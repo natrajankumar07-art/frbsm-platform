@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Moon, Sun } from "lucide-react";
 import { useEntity } from "../../context/EntityContext";
+import { useTheme } from "../../context/ThemeContext";
 
 export function TopBar() {
   const { entities, selected, setSelected } = useEntity();
+  const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -53,7 +55,20 @@ export function TopBar() {
         )}
       </div>
 
-      <p className="text-caption text-text-secondary font-mono">BSM Platform v2026.1</p>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={toggleTheme}
+          title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+          className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-border dark:hover:bg-gray-700 transition-colors"
+        >
+          {theme === "light" ? (
+            <Moon className="h-4 w-4" />
+          ) : (
+            <Sun className="h-4 w-4 text-amber-400" />
+          )}
+        </button>
+        <p className="text-caption text-text-secondary font-mono">BSM Platform v2026.1</p>
+      </div>
     </header>
   );
 }

@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import { AppShell } from "./components/layout/AppShell";
 import { Login } from "./pages/Login";
+import { ExecutiveDashboard } from "./pages/dashboard/ExecutiveDashboard";
 import { Dashboard } from "./pages/Dashboard";
 import { PositionList } from "./pages/positions/PositionList";
 import { ScenarioList } from "./pages/scenarios/ScenarioList";
@@ -30,11 +32,13 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <ThemeProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route element={<RequireAuth />}>
-              <Route index element={<Dashboard />} />
+              <Route index element={<ExecutiveDashboard />} />
+              <Route path="dashboard/legacy" element={<Dashboard />} />
               <Route path="positions" element={<PositionList />} />
               <Route path="scenarios" element={<ScenarioList />} />
               <Route path="analytics/lcr" element={<LCRDashboard />} />
@@ -44,6 +48,7 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

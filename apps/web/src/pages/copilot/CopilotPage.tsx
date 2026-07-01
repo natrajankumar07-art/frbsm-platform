@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Bot, Plus, Send, Trash2, AlertCircle, FileText, ShieldCheck, LayoutList, Bell } from "lucide-react";
 import { clsx } from "clsx";
@@ -68,11 +69,25 @@ async function deleteSession(sessionId: string): Promise<void> {
 
 export function CopilotPage() {
   const { selected: entity } = useEntity();
+  const location = useLocation();
 
   // Active session state
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+
+  // Pre-fill from Ask SAM buttons (sessionStorage) or router state
+  useEffect(() => {
+    const storedPrefill = sessionStorage.getItem("bsm-copilot-prefill");
+    if (storedPrefill) {
+      setInput(storedPrefill);
+      sessionStorage.removeItem("bsm-copilot-prefill");
+    } else if ((location.state as { prefillMessage?: string } | null)?.prefillMessage) {
+      setInput((location.state as { prefillMessage: string }).prefillMessage);
+    }
+  // Only run on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 

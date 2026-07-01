@@ -9,16 +9,18 @@ import {
   FlaskConical,
   LogOut,
   Bot,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 const NAV_PRIMARY = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/", label: "Executive Dashboard", icon: BarChart3, end: true },
   { to: "/positions", label: "Positions", icon: Layers },
   { to: "/scenarios", label: "Scenarios", icon: FlaskConical },
   { to: "/analytics/lcr", label: "LCR", icon: Activity },
   { to: "/analytics/nsfr", label: "NSFR", icon: LineChart },
   { to: "/analytics/balance-sheet", label: "Balance Sheet", icon: Building2 },
+  { to: "/dashboard/legacy", label: "Ops Dashboard", icon: LayoutDashboard },
 ];
 
 export function Sidebar() {
