@@ -10,7 +10,9 @@ interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  isDemoMode: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginDemo: () => Promise<void>;
   logout: () => void;
 }
 
@@ -25,16 +27,27 @@ const DEMO_USER: AuthUser = {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const login = async (_email: string, _password: string) => {
     await new Promise((r) => setTimeout(r, 400));
     setUser(DEMO_USER);
+    setIsDemoMode(false);
   };
 
-  const logout = () => setUser(null);
+  const loginDemo = async () => {
+    await new Promise((r) => setTimeout(r, 200));
+    setUser(DEMO_USER);
+    setIsDemoMode(true);
+  };
+
+  const logout = () => {
+    setUser(null);
+    setIsDemoMode(false);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isDemoMode, login, loginDemo, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,7 +1,7 @@
 # BSM Platform — Project Status
 
 **Document version:** 2026-07-01  
-**Status:** Epics 0, 1, 2A, 2B, 2C, 3, 3.1, 4A, 4B, 4C, 4D, 4D.1, and 5 complete. Awaiting approval before Epic 6.  
+**Status:** Epics 0, 1, 2A, 2B, 2C, 3, 3.1, 4A, 4B, 4C, 4D, 4D.1, 5, 6, and 7 complete. Platform at v1.0-demo.  
 **Source of truth:** `build-pack/Final_Build_Pack.md`
 
 ---
@@ -364,29 +364,26 @@ React 18 + TypeScript SPA with Vite, Tailwind CSS, TanStack Query, Recharts. 7 p
 
 | Branch | Status | HEAD |
 |--------|--------|------|
-| `main` | Active — working tree clean | `1f4b8b2` (Epic 5 - Executive Intelligence Dashboard) |
+| `main` | Active | `v1.0-demo` (Epic 7 - Demo and Production Readiness) |
 
-**Commit log (13 epics, 17 commits):**
+**Commit log (15 epics):**
 
 ```
-1f4b8b2 Epic 5 - Executive Intelligence Dashboard
-1a4983a Epic 4D.1 - Integrate official SAM avatar
-7c7c796 Epic 4D - Agentic AI Planner
-ddac200 Update PROJECT_STATUS.md for Epics 4A–4C
-f953e33 Epic 4C - AI Workflow and Report Automation
-6ea1f6c Epic 4B - Banking Intelligence Layer
-0d0648d Epic 4A - AI Copilot infrastructure
-5be3e36 Epic 3.1 - Frontend stabilization
-6ba7e2f Epic 3 - Frontend Validation Report
-45bc40c Epic 3 - React frontend and analytics API
-217d1e0 Epic 2C - Financial calculation engines
-eec7ddb Epic 2B - Fix sort_by validation and snapshot status transition
-22db6b8 Epic 2B - Domain API layer
-ab672c7 Epic 2A - Fix Docker health check and SQL echo
-44ba6cf Epic 2A - FastAPI platform foundation
-f0c0367 Epic 1 - Database foundation validated
-e11aa1f Epic 1 - Database foundation complete
-727352a Epic 0 - Repository foundation
+[v1.0-demo] Epic 7 - Demo and Production Readiness
+0f2698f  Epic 6 - Autonomous Banking Intelligence
+1f4b8b2  Epic 5 - Executive Intelligence Dashboard
+1a4983a  Epic 4D.1 - Integrate official SAM avatar
+7c7c796  Epic 4D - Agentic AI Planner
+f953e33  Epic 4C - AI Workflow and Report Automation
+6ea1f6c  Epic 4B - Banking Intelligence Layer
+0d0648d  Epic 4A - AI Copilot infrastructure
+5be3e36  Epic 3.1 - Frontend stabilization
+45bc40c  Epic 3 - React frontend and analytics API
+217d1e0  Epic 2C - Financial calculation engines
+22db6b8  Epic 2B - Domain API layer
+44ba6cf  Epic 2A - FastAPI platform foundation
+e11aa1f  Epic 1 - Database foundation complete
+727352a  Epic 0 - Repository foundation
 ```
 
 **Git tags:**
@@ -398,6 +395,8 @@ e11aa1f Epic 1 - Database foundation complete
 - `v0.5-agentic-ai` — Epic 4D
 - `v0.5.1-sam-avatar` — Epic 4D.1
 - `v0.6-executive-dashboard` — Epic 5
+- `v0.7-autonomous-intelligence` — Epic 6
+- `v1.0-demo` — Epic 7 (current)
 
 ---
 
@@ -489,6 +488,33 @@ New landing page replacing the Ops Dashboard. SAM as focal point. 9 dashboard co
 - `AskSAMButton` — Context-aware Copilot navigation with sessionStorage prefill
 
 Theme system: `ThemeContext` (dark/light, localStorage, TopBar toggle). All metrics consumed from existing APIs — no recalculation. 46/46 new tests. Validation report: `docs/epic5_validation_report.md`.
+
+## 11. Completed: Epic 6 — Autonomous Banking Intelligence (`0f2698f`, tag: `v0.7-autonomous-intelligence`)
+
+SAM transformed into a proactive autonomous monitoring system. 15 requirements implemented:
+- 6 Pydantic v2 schemas for autonomous resources (alerts, recommendations, issues, briefings, scheduled reports, monitoring)
+- 16 REST endpoints at `/v1/autonomous/`
+- Background scheduler (`asyncio.create_task`) — 15-minute monitoring cycle, 06:00 UTC morning briefings
+- 5 Python AI services: trend detection, recommendation generation, briefing generation, persistent monitoring, issue management
+- 3 frontend components: `AlertCenter`, `RecommendationsPanel`, `ActivityFeed` (added to Executive Dashboard Row 6)
+- 3 new autonomous pages: Briefings, Issues, Scheduled Reports
+- 67 new Python unit tests, 47 new vitest tests
+- Validation report: `docs/epic6_validation_report.md`
+
+## 12. Completed: Epic 7 — Demo and Production Readiness (`pending`, tag: `v1.0-demo`)
+
+Platform transformed into polished enterprise demo. 15 requirements implemented:
+- **Landing Page** (`/welcome`) — dark-themed, SAM intro, capabilities, architecture, regulatory badges, tech stack, "Launch Demo"
+- **Demo Mode** — `loginDemo()`, `isDemoMode`, DEMO badge in sidebar + topbar
+- **Product Tour** — 6-step guided overlay, `TourContext`, localStorage persistence, `TourProvider`
+- **About SAM Page** (`/about-sam`) — capabilities, architecture, financial boundaries, regulatory expertise, AI safety
+- **Help Center** (`/help`) — 6 tabs: User Guide, Admin Guide, Architecture, FAQ, Keyboard Shortcuts, Troubleshooting
+- **Polish** — dark mode throughout, consistent spacing, hover effects, animations, loading/empty states
+- **Performance** — React.lazy + Suspense for all 12 page routes, Vite manual chunks
+- **Accessibility** — ARIA roles (navigation, main, banner, dialog, listbox, option), labels, aria-expanded, aria-modal
+- **Documentation** — 8 docs: FINAL_DEMO_GUIDE, USER_GUIDE, ADMIN_GUIDE, ARCHITECTURE, API_GUIDE, AI_SAFETY, DEPLOYMENT, DEMO_SCRIPT
+- **Tests** — 47 new vitest tests (5 new test files); 140/140 total passing; 0 TS errors
+- Validation report: `docs/epic7_validation_report.md`
 
 ---
 
