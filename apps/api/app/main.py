@@ -31,6 +31,7 @@ from .routers import health as health_router
 from .routers import (
     analytics as analytics_router,
     cashflows as cashflows_router,
+    copilot as copilot_router,
     counterparties as counterparties_router,
     legal_entities as legal_entities_router,
     positions as positions_router,
@@ -138,3 +139,4 @@ app.include_router(snapshots_router.router)
 app.include_router(scenarios_router.router)
 app.include_router(stress_tests_router.router)
 app.include_router(analytics_router.router)
+app.include_router(copilot_router.router)

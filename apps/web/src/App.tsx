@@ -9,6 +9,7 @@ import { ScenarioList } from "./pages/scenarios/ScenarioList";
 import { LCRDashboard } from "./pages/analytics/LCRDashboard";
 import { NSFRDashboard } from "./pages/analytics/NSFRDashboard";
 import { BalanceSheetDashboard } from "./pages/analytics/BalanceSheetDashboard";
+import { CopilotPage } from "./pages/copilot/CopilotPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="analytics/lcr" element={<LCRDashboard />} />
               <Route path="analytics/nsfr" element={<NSFRDashboard />} />
               <Route path="analytics/balance-sheet" element={<BalanceSheetDashboard />} />
+              <Route path="copilot" element={<CopilotPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

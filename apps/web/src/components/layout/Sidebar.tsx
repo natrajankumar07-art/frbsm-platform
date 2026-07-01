@@ -8,10 +8,11 @@ import {
   Building2,
   FlaskConical,
   LogOut,
+  Bot,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
-const NAV = [
+const NAV_PRIMARY = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/positions", label: "Positions", icon: Layers },
   { to: "/scenarios", label: "Scenarios", icon: FlaskConical },
@@ -31,7 +32,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-0.5">
-        {NAV.map(({ to, label, icon: Icon, end }) => (
+        {NAV_PRIMARY.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
@@ -49,6 +50,24 @@ export function Sidebar() {
             {label}
           </NavLink>
         ))}
+
+        {/* AI Copilot separator */}
+        <div className="border-t border-border my-2" />
+
+        <NavLink
+          to="/copilot"
+          className={({ isActive }) =>
+            clsx(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-body transition-colors",
+              isActive
+                ? "bg-accent/10 text-accent font-medium"
+                : "text-text-secondary hover:bg-border hover:text-text-primary"
+            )
+          }
+        >
+          <Bot className="h-4 w-4 flex-shrink-0" />
+          AI Copilot
+        </NavLink>
       </nav>
 
       <div className="border-t border-border p-3">
