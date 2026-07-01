@@ -3,6 +3,8 @@
  * Displays steps with status badges, tool names, and progress.
  */
 
+import { SamAvatar } from "./SamAvatar";
+
 export interface PlanStep {
   step_id: string;
   tool_name: string;
@@ -70,10 +72,16 @@ export function PlannerPanel({ plan, isExecuting }: PlannerPanelProps) {
 
   return (
     <div className="px-3 py-2 space-y-3">
+      {/* SAM header */}
+      <div className="flex items-center gap-2 pb-1 border-b border-border">
+        <SamAvatar size="xs" statusDot />
+        <span className="text-caption font-semibold text-text-primary">SAM — Execution Plan</span>
+      </div>
+
       {/* Plan summary */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <span className="text-caption font-semibold text-text-primary">Execution Plan</span>
+          <span className="text-caption font-semibold text-text-primary">Steps</span>
           <span className="text-caption text-text-secondary font-mono">
             {plan.steps_completed}/{plan.steps_total}
           </span>

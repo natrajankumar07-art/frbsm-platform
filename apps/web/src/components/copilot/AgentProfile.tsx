@@ -1,88 +1,81 @@
 /**
- * AgentProfile — SAM identity placeholder component (Epic 4D).
+ * AgentProfile — Official SAM identity component (Epic 4D.1).
  *
- * Displays the agent's name, title, avatar, description, and status.
- * Epic 5 introduces the final SAM identity without changing this component's
- * contract — pass the real props and the design updates automatically.
+ * Displays:
+ *   SAM
+ *   Supervisory AI Manager
+ *   Senior Banking Intelligence Advisor
+ *   ● Online
+ *
+ * Sizes:
+ *   compact — inline header chip (32px avatar)
+ *   full    — card layout (64px desktop / 40px mobile)
  */
+
+import { SamAvatar } from "./SamAvatar";
 
 export type AgentStatus = "active" | "idle" | "thinking" | "error";
 
 export interface AgentProfileProps {
   name?: string;
   title?: string;
+  subtitle?: string;
   description?: string;
   status?: AgentStatus;
   compact?: boolean;
 }
 
-const STATUS_STYLES: Record<AgentStatus, string> = {
-  active: "bg-green-500",
-  idle: "bg-gray-400",
-  thinking: "bg-blue-500 animate-pulse",
-  error: "bg-red-500",
+const STATUS_DOT: Record<AgentStatus, string> = {
+  active:   "bg-green-500",
+  idle:     "bg-green-500",    // always Online
+  thinking: "bg-blue-400 animate-pulse",
+  error:    "bg-red-500",
 };
 
-const STATUS_LABELS: Record<AgentStatus, string> = {
-  active: "Active",
-  idle: "Idle",
+const STATUS_LABEL: Record<AgentStatus, string> = {
+  active:   "Online",
+  idle:     "Online",
   thinking: "Thinking…",
-  error: "Error",
+  error:    "Error",
 };
 
 export function AgentProfile({
-  name = "SAM",
-  title = "Supervisory AI Manager",
-  description = "Intelligent banking teammate — explains regulatory position using validated engine outputs.",
-  status = "idle",
-  compact = false,
+  name     = "SAM",
+  title    = "Supervisory AI Manager",
+  subtitle = "Senior Banking Intelligence Advisor",
+  status   = "idle",
+  compact  = false,
 }: AgentProfileProps) {
+
+  /* ── Compact — header chip ─────────────────────────────────────────── */
   if (compact) {
     return (
       <div className="flex items-center gap-2">
-        {/* Placeholder avatar — Epic 5 replaces with final SAM avatar */}
-        <div className="relative flex-shrink-0">
-          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm select-none">
-            S
-          </div>
-          <span
-            className={[
-              "absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white",
-              STATUS_STYLES[status],
-            ].join(" ")}
-          />
-        </div>
+        <SamAvatar size="sm" statusDot />
         <div className="min-w-0">
           <p className="text-body font-semibold text-text-primary leading-none">{name}</p>
-          <p className="text-caption text-text-secondary truncate">{STATUS_LABELS[status]}</p>
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className={["w-1.5 h-1.5 rounded-full", STATUS_DOT[status]].join(" ")} />
+            <p className="text-caption text-text-secondary">{STATUS_LABEL[status]}</p>
+          </div>
         </div>
       </div>
     );
   }
 
+  /* ── Full — card ───────────────────────────────────────────────────── */
   return (
-    <div className="flex items-start gap-3 p-3 bg-surface rounded-lg border border-border">
-      {/* Placeholder avatar — Epic 5 replaces with final SAM avatar */}
-      <div className="relative flex-shrink-0">
-        <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-xl select-none">
-          S
-        </div>
-        <span
-          className={[
-            "absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full border-2 border-white",
-            STATUS_STYLES[status],
-          ].join(" ")}
-        />
-      </div>
+    <div className="flex items-start gap-4 p-4 bg-surface rounded-xl border border-border shadow-sm">
+      <SamAvatar size="lg" statusDot />
       <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <h3 className="text-heading font-semibold text-text-primary">{name}</h3>
-          <span className="text-caption text-text-secondary">{title}</span>
-        </div>
-        <p className="text-caption text-text-secondary mt-0.5 leading-relaxed">{description}</p>
-        <div className="flex items-center gap-1.5 mt-1.5">
-          <span className={["w-2 h-2 rounded-full", STATUS_STYLES[status]].join(" ")} />
-          <span className="text-caption text-text-secondary">{STATUS_LABELS[status]}</span>
+        <h3 className="text-lg font-bold text-text-primary leading-tight">{name}</h3>
+        <p className="text-body text-text-secondary font-medium">{title}</p>
+        <p className="text-caption text-text-secondary/80 mt-0.5">{subtitle}</p>
+        <div className="flex items-center gap-1.5 mt-2">
+          <span className={["w-2 h-2 rounded-full", STATUS_DOT[status]].join(" ")} />
+          <span className="text-caption font-medium text-text-secondary">
+            {STATUS_LABEL[status]}
+          </span>
         </div>
       </div>
     </div>

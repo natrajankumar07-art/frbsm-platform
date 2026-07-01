@@ -16,6 +16,7 @@ import { AgentProfile } from "../../components/copilot/AgentProfile";
 import { ExecutionTimeline, type TimelineEvent } from "../../components/copilot/ExecutionTimeline";
 import { PlannerPanel, type ActivePlan } from "../../components/copilot/PlannerPanel";
 import { AlertPanel } from "../../components/copilot/AlertPanel";
+import { SamAvatar } from "../../components/copilot/SamAvatar";
 import { useEntity } from "../../context/EntityContext";
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import type { ToolEvidence } from "../../types/workflow";
@@ -197,9 +198,9 @@ export function CopilotPage() {
 
   // Right panel tab state
   const [rightTab, setRightTab] = useState<"reports" | "evidence" | "planner" | "alerts">("reports");
-  const [lastEvidence, setLastEvidence] = useState<ToolEvidence | null>(null);
-  const [agentTimeline, setAgentTimeline] = useState<TimelineEvent[]>([]);
-  const [activePlan, setActivePlan] = useState<ActivePlan | null>(null);
+  const [lastEvidence, _setLastEvidence] = useState<ToolEvidence | null>(null);
+  const [agentTimeline, _setAgentTimeline] = useState<TimelineEvent[]>([]);
+  const [activePlan, _setActivePlan] = useState<ActivePlan | null>(null);
   const [agentStatus, setAgentStatus] = useState<"idle" | "thinking" | "active">("idle");
 
   // ---------------------------------------------------------------------------
@@ -210,13 +211,21 @@ export function CopilotPage() {
     <div className="flex h-full" style={{ height: "calc(100vh - 56px)" }}>
       {/* ── Left panel: session history ──────────────────────────────────── */}
       <aside className="w-56 flex-shrink-0 border-r border-border bg-surface flex flex-col">
-        <div className="p-3 border-b border-border">
+        {/* SAM identity — conversation sidebar */}
+        <div className="px-3 pt-3 pb-2 border-b border-border flex items-center gap-2">
+          <SamAvatar size="sm" statusDot />
+          <div className="min-w-0">
+            <p className="text-caption font-semibold text-text-primary leading-none">SAM</p>
+            <p className="text-caption text-text-secondary truncate" style={{ fontSize: "10px" }}>
+              Banking Intelligence
+            </p>
+          </div>
           <button
             onClick={handleNewChat}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-accent text-white text-body font-medium hover:bg-accent/90 transition-colors"
+            title="New Chat"
+            className="ml-auto flex-shrink-0 h-7 w-7 rounded-md bg-accent text-white flex items-center justify-center hover:bg-accent/90 transition-colors"
           >
-            <Plus className="h-4 w-4" />
-            New Chat
+            <Plus className="h-3.5 w-3.5" />
           </button>
         </div>
 
@@ -237,7 +246,7 @@ export function CopilotPage() {
                     : "text-text-secondary hover:bg-border hover:text-text-primary"
                 )}
               >
-                <Bot className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <SamAvatar size="xs" glow={false} className="mt-0.5" />
                 <span className="flex-1 truncate">{s.title}</span>
                 <span
                   onClick={(e) => void handleDeleteSession(s.id, e)}
@@ -312,8 +321,8 @@ export function CopilotPage() {
               {/* Thinking indicator (streaming started but no content yet) */}
               {isStreaming && !streamingContent && (
                 <div className="flex justify-start mb-4">
-                  <div className="flex-shrink-0 w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center text-accent text-caption font-bold mr-2">
-                    AI
+                  <div className="mr-2 mt-0.5">
+                    <SamAvatar size="xs" glow={false} />
                   </div>
                   <div className="bg-surface border border-border rounded-lg rounded-bl-none px-4 py-3">
                     <LoadingSpinner />

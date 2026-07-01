@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ReportTypeInfo, ReportResponse } from "../../types/workflow";
 import { useReportGeneration, downloadMarkdown } from "../../hooks/useReportGeneration";
+import { SamAvatar } from "./SamAvatar";
 
 interface ReportPanelProps {
   entityId: string | null;
@@ -56,6 +57,12 @@ export function ReportPanel({ entityId, snapshotId }: ReportPanelProps) {
 
   return (
     <div className="flex flex-col h-full">
+      {/* SAM header */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+        <SamAvatar size="xs" statusDot />
+        <span className="text-caption font-semibold text-text-primary">SAM — Reports</span>
+      </div>
+
       {/* Report type grid */}
       <div className="p-4 border-b border-border">
         <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">

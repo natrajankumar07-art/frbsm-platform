@@ -1,6 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { clsx } from "clsx";
+import { SamAvatar } from "./SamAvatar";
 
 export interface Message {
   id: string;
@@ -27,8 +28,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
       )}
     >
       {!isUser && (
-        <div className="flex-shrink-0 w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center text-accent text-caption font-bold mr-2 mt-0.5">
-          AI
+        <div className="mr-2 mt-0.5">
+          <SamAvatar size="xs" glow={false} />
         </div>
       )}
 

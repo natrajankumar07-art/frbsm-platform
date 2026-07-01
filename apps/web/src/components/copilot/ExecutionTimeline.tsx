@@ -7,6 +7,8 @@
  * Never exposes chain-of-thought. Only high-level summaries per stage.
  */
 
+import { SamAvatar } from "./SamAvatar";
+
 export interface TimelineEvent {
   stage: string;
   label: string;
@@ -55,7 +57,10 @@ function formatTime(iso: string): string {
 export function ExecutionTimeline({ events, planId }: ExecutionTimelineProps) {
   if (events.length === 0) {
     return (
-      <div className="px-4 py-6 text-center text-caption text-text-secondary">
+      <div className="px-4 py-6 text-center space-y-2 text-caption text-text-secondary">
+        <div className="flex justify-center">
+          <SamAvatar size="md" statusDot />
+        </div>
         No execution timeline yet. Ask SAM a question to see reasoning steps.
       </div>
     );
@@ -63,11 +68,18 @@ export function ExecutionTimeline({ events, planId }: ExecutionTimelineProps) {
 
   return (
     <div className="px-3 py-2">
-      {planId && (
-        <p className="text-caption text-text-secondary mb-3 font-mono truncate">
-          Plan {planId.slice(0, 8)}…
-        </p>
-      )}
+      {/* SAM header */}
+      <div className="flex items-center gap-2 mb-3 pb-1 border-b border-border">
+        <SamAvatar size="xs" statusDot />
+        <div>
+          <span className="text-caption font-semibold text-text-primary">SAM — Reasoning</span>
+          {planId && (
+            <span className="text-caption text-text-secondary font-mono ml-1.5">
+              {planId.slice(0, 8)}…
+            </span>
+          )}
+        </div>
+      </div>
       <ol className="relative">
         {events.map((event, idx) => {
           const isLast = idx === events.length - 1;
