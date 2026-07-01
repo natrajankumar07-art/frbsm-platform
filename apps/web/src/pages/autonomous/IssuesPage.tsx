@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { clsx } from "clsx";
-import { AlertTriangle, Plus, CheckCircle2, Eye } from "lucide-react";
+import { Plus, CheckCircle2, Eye } from "lucide-react";
 import { format } from "date-fns";
 
 interface Issue {
