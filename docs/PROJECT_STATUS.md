@@ -1,7 +1,7 @@
 # BSM Platform — Project Status
 
 **Document version:** 2026-07-01  
-**Status:** Epics 0, 1, 2A, 2B, 2C, 3, 3.1, 4A, 4B, and 4C complete. Awaiting Epic 4D approval.  
+**Status:** Epics 0, 1, 2A, 2B, 2C, 3, 3.1, 4A, 4B, 4C, 4D, 4D.1, and 5 complete. Awaiting approval before Epic 6.  
 **Source of truth:** `build-pack/Final_Build_Pack.md`
 
 ---
@@ -364,11 +364,15 @@ React 18 + TypeScript SPA with Vite, Tailwind CSS, TanStack Query, Recharts. 7 p
 
 | Branch | Status | HEAD |
 |--------|--------|------|
-| `main` | Active — working tree clean | `f953e33` (Epic 4C - AI Workflow and Report Automation) |
+| `main` | Active — working tree clean | `1f4b8b2` (Epic 5 - Executive Intelligence Dashboard) |
 
-**Commit log (10 epics, 14 commits):**
+**Commit log (13 epics, 17 commits):**
 
 ```
+1f4b8b2 Epic 5 - Executive Intelligence Dashboard
+1a4983a Epic 4D.1 - Integrate official SAM avatar
+7c7c796 Epic 4D - Agentic AI Planner
+ddac200 Update PROJECT_STATUS.md for Epics 4A–4C
 f953e33 Epic 4C - AI Workflow and Report Automation
 6ea1f6c Epic 4B - Banking Intelligence Layer
 0d0648d Epic 4A - AI Copilot infrastructure
@@ -377,7 +381,7 @@ f953e33 Epic 4C - AI Workflow and Report Automation
 45bc40c Epic 3 - React frontend and analytics API
 217d1e0 Epic 2C - Financial calculation engines
 eec7ddb Epic 2B - Fix sort_by validation and snapshot status transition
-22db6b8 Epic 2B - Domain API layer: repositories, services, routers for 9 domains
+22db6b8 Epic 2B - Domain API layer
 ab672c7 Epic 2A - Fix Docker health check and SQL echo
 44ba6cf Epic 2A - FastAPI platform foundation
 f0c0367 Epic 1 - Database foundation validated
@@ -391,6 +395,9 @@ e11aa1f Epic 1 - Database foundation complete
 - `v0.4-copilot-infrastructure` — Epic 4A
 - `v0.4-banking-intelligence` — Epic 4B
 - `v0.4-ai-workflow` — Epic 4C
+- `v0.5-agentic-ai` — Epic 4D
+- `v0.5.1-sam-avatar` — Epic 4D.1
+- `v0.6-executive-dashboard` — Epic 5
 
 ---
 
@@ -460,7 +467,28 @@ SSE streaming chat (`/v1/copilot/chat`), session CRUD, context builder (reads pr
 ### Epic 4C — AI Workflow and Report Automation (`f953e33`, tag: `v0.4-ai-workflow`)
 15 AI workflow tools (ToolRegistry, ToolEvidence provenance), 10 Markdown-exportable report types with PDF/DOCX export_hints, conversation memory (SessionMemory, migration 0023), workflow executor (SSE, Anthropic tool_use API, mock fallback), 6 new API endpoints, Reports panel + Evidence panel frontend components. 85 new tests; 342/342 total pass.
 
-## 11. Next: Epic 4D (pending approval)
+## 11. Completed: Epic 4D — Agentic AI Planner (`7c7c796`, tag: `v0.5-agentic-ai`)
+
+IntentAnalyzer, ExecutionPlan, PlanExecutor, ExecutionMonitor, ReasoningTimeline, AutonomousMonitor (LCR/NSFR/Capital thresholds), 6 agent API endpoints (`/v1/copilot/agent/`), 4-tab Copilot UI (Reports/Evidence/Plan/Alerts), AgentProfile. 115 new tests; 453/453 total pass.
+
+### Epic 4D.1 — Official SAM Avatar (`1a4983a`, tag: `v0.5.1-sam-avatar`)
+
+`SamAvatar` component (circular, 28–64px, white border, blue glow, hover animation), integrated across 9 Copilot surfaces. AgentProfile updated: SAM / Supervisory AI Manager / Senior Banking Intelligence Advisor / ● Online. 0 TS errors; 0 Vite warnings.
+
+### Epic 5 — Executive Intelligence Dashboard (`1f4b8b2`, tag: `v0.6-executive-dashboard`)
+
+New landing page replacing the Ops Dashboard. SAM as focal point. 9 dashboard components:
+- `BankHealthIndicator` — Healthy/Warning/Critical derived from engine pass/fail flags
+- `ExecutiveSAMPanel` — Avatar, dynamic greeting (health × entity × time-of-day), executive summary, CTA buttons
+- `RegulatoryStatusGrid` — LCR, NSFR, CET1, Tier1, TCR, Leverage with Ask SAM buttons
+- `InsightCard` — Liquidity, Capital, Funding, Stress with drivers + recommendation
+- `RiskHeatmap` — 6-category Green/Amber/Red with hover explanations
+- `TrendChart` — LCR/NSFR and CET1/Leverage line charts over last 5 snapshots
+- `ExecutiveDashTimeline` — Event timeline (snapshot, engines, alerts, reports)
+- `ExecutiveReports` — 7 executive report quick actions
+- `AskSAMButton` — Context-aware Copilot navigation with sessionStorage prefill
+
+Theme system: `ThemeContext` (dark/light, localStorage, TopBar toggle). All metrics consumed from existing APIs — no recalculation. 46/46 new tests. Validation report: `docs/epic5_validation_report.md`.
 
 ---
 
