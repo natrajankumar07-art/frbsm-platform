@@ -136,8 +136,8 @@ describe("RecommendationsPanel", () => {
       expect(screen.getByText("Restore LCR Compliance")).toBeInTheDocument();
     });
     // Click expand button for first item
-    const expandBtns = screen.getAllByRole("button");
-    const chevronBtn = expandBtns.find((b) => b.title === undefined || b.title === "");
+    
+  
     // Find the chevron button in the first recommendation item
     const items = screen.getAllByTestId("recommendation-item");
     const btn = items[0].querySelector("button");
