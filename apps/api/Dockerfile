@@ -21,8 +21,9 @@ COPY apps/workers/pyproject.toml apps/workers/
 # Builder: install all dependencies
 # ---------------------------------------------------------------------------
 FROM base AS builder
+COPY . .
 
-RUN uv sync --frozen --no-dev --no-install-project --all-packages
+RUN uv sync --frozen --no-dev --all-packages
 
 # ---------------------------------------------------------------------------
 # Development: full workspace with hot-reload
