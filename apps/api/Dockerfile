@@ -94,6 +94,10 @@ COPY --chown=bsm:bsm workflow/ /app/workflow/
 COPY --chown=bsm:bsm observability/ /app/observability/
 COPY --chown=bsm:bsm apps/api/app/ /app/app/
 
+
+COPY --chown=bsm:bsm apps/api/alembic/ /app/alembic/
+COPY --chown=bsm:bsm apps/api/alembic.ini /app/alembic.ini
+
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH="/app" \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -106,4 +110,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["sh", "-c", "cd /app && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4"]
