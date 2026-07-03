@@ -51,6 +51,7 @@ RUN uv sync --frozen --no-dev --no-editable --all-packages
 FROM base AS development
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
+    PYTHONPATH=/workspace \   
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 

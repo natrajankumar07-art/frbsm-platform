@@ -48,6 +48,8 @@ def _make_title(message: str) -> str:
 def _get_provider(cfg: settings.__class__) -> AnthropicProvider | None:  # type: ignore[valid-type]
     if not cfg.anthropic_api_key:
         return None
+    
+     
     return AnthropicProvider(api_key=cfg.anthropic_api_key, model=cfg.anthropic_model)
 
 

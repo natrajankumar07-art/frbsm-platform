@@ -12,7 +12,6 @@ import time
 import uuid
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -137,8 +136,9 @@ async def stream_copilot_response(
     await db.flush()
 
     # ── 6. Audit log to reasoning_runs ───────────────────────────────────────
-    from engines.common.utils import canonical_hash  # noqa: PLC0415
+    
 
+    from engines.common.utils import canonical_hash  # noqa: PLC0415   
     prompt_payload = {
         "system": system_prompt,
         "messages": [{"role": m.role, "content": m.content} for m in messages],
